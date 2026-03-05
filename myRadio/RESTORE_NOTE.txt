@@ -1,0 +1,1 @@
+FULL RESTORE package: restores original UI drawing in app_impl.cpp. If you previously added board_pins.h/.cpp, delete them to avoid encoder multiple-definition.
