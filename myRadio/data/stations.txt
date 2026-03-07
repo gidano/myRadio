@@ -10,17 +10,16 @@ Bias Rádió	https://admin.biasradio.com/radio/8000/live
 Bithang Yoo Rádió	https://s03.diazol.hu:35162/stream
 Blues Wave	https://blueswave.radio:8000/blueswave
 Cool FM	https://mediagw.e-tiger.net:443/stream/cfmhq
-Creedence Clearwater Revival	https://nl4.mystreaming.net/er/creedence/icecast.audio
 Csukás Meserádió	https://mr-stream.connectmedia.hu/4611/mr10.mp3
 DanceFM 89.5	http://edge126.rdsnet.ro:84/profm/dancefm.mp3
-Danubius Rádió	https://stream.danubiusradio.hu/danubius_192k
+Danubius Rádió	https://stream.danubiusradio.hu/danubius_192k	
 Danubius Rádió (Hi-Fi)	https://danubiusradio.hu/live_HiFi.mp3
 Deep Purple Exclusively	https://streaming.exclusive.radio/er/deeppurple/icecast.audio
 Deja Vu	https://carina.streamerr.co/stream/dejavuradio/dejavuradio
 Depeche Mode	http://nl4.mystreaming.net/er/depechemode/icecast.audio
 DJ Now!	https://s01.diazol.hu:10072/djnow
 Eric Clapton	https://streaming.exclusive.radio/er/ericclapton/icecast.audio
-Fleetwood Mac	https://streaming.exclusive.radio/er/fleetwoodmac/icecast.audio
+Fleetwood Mac Exclusively	https://streaming.exclusive.radio/er/fleetwoodmac/icecast.audio
 Funky Corner	http://ais-edge147-dal03.cdnstream.com:80/2447_192.mp3
 I Love Pécs	http://radio.ilovepecs.hu:8200/ilp.mp3
 Irish Folk	https://stream.laut.fm/irish-folk
@@ -70,5 +69,5 @@ WDWH-Roots of Rock	http://s4.voscast.com:8950/stream
 Youventus Rádió	http://s2.audiostream.hu/juventus_192k
 Youventus Rádió (Hi-Fi)	http://s2.audiostream.hu:8090/juventus_FLAC
 Zebrádió	https://stream.zebradio.hu:8443/zebradio
-ZZ Top	https://2.mystreaming.net/er/zztop/icecast.audio
+ZZ Top Exclusively	https://2.mystreaming.net/er/zztop/icecast.audio
 PC/Zene - kevert	http://192.168.31.101:8000/playlist_shuffle.m3u
