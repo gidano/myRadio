@@ -1,52 +1,82 @@
-# myRadio
-ESP32S3 alapú, saját szoftverre épülő webrádió projekt<br> 
-!!! Fejlesztési szakaszban lévő, nem refaktorált projekt !!!
-Egyelőre adott hardver konfigurációval használható, Arduino Ide által flashelhető, bináris fájlokat tudok adni.
-Támogatás nélküli tesztüzemre, lelkes amatőrök számára.
+<h1 align="center">myRadio</h1>
 
-<img src="https://github.com/gidano/myRadio/blob/main/images/myRadio_felulet_480x320px.jpg" alt="myRadio" width="max-width:50%;">
+<p align="center">
+  ESP32-S3 alapú webrádió projekt saját szoftverrel<br>
+  <strong style="color:#e74c3c;">Fejlesztés alatt – nem refaktorált, jelenlegi állapotában használható</strong>
+</p>
 
-A használt hardver elemek:
+<p align="center">
+  <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_felulet_480x320px.jpg" alt="myRadio felület" width="65%"><br>
+  <small>aktuális megjelenés (480×320-as kijelzőn)</small>
+</p>
 
-ESP32-S3 Supermini N4R2
-ESP32-S3 N16R8
+<hr>
 
-ST7789, ILI9341 320x240
-ST7796, ILI9488 480x320
+<h2>Hardver</h2>
 
-DAC 5102A, vagy CJMCU CS4344
-EC11 vagy KY-040 rotary encoder
+<ul>
+  <li>ESP32-S3 Supermini N4R2 vagy ESP32-S3 N16R8</li>
+  <li>Kijelzők:
+    <ul>
+      <li>ST7789 / ILI9341 (320×240)</li>
+      <li>ST7796 / ILI9488 (480×320)</li>
+    </ul>
+  </li>
+  <li>DAC: PCM5102A vagy CJMCU CS4344</li>
+  <li>Rotary encoder: EC11 vagy KY-040</li>
+</ul>
 
-Szoftver:
+<h2>Szoftver & Beállítások</h2>
 
-Arduino IDE 2.3.8 - CORE 3.3.7 - (magas bitrátájú adatfolyamok lejátszása csak a megfelelő liblwip módosítások elvégezése után!)
-Arduino IDE paraméterek az alap yoRadio szerint (szükség van PSRAM meglétére)
-SPIFFS-t használunk az állomás lista (stations.txt), a .vlw típusú fontok, a webfelület és a WiFi adatok (wifi.txt) tárolására
+<ul>
+  <li>Arduino IDE 2.3.x + ESP32 core 3.0.x / 3.x</li>
+  <li><strong>PSRAM</strong> megléte kötelező a magasabb bitrátájú stream-ekhez</li>
+  <li>SPIFFS fájlrendszer:
+    <ul>
+      <li><code>stations.txt</code> – állomáslista</li>
+      <li><code>.vlw</code> fontok</li>
+      <li>webfelület fájljai</li>
+      <li><code>wifi.txt</code> – WiFi adatok</li>
+    </ul>
+  </li>
+</ul>
 
-Könyvtárak:
+<h3>Használt könyvtárak</h3>
 
-LovyanGFX by lovyan03 v1.2.19
-ESP32-audioI2S-master by schreibfaul1 v3.4.4
-Adafruit ST7735 and ST7789 Library by Adafruit v1.11.0
-A GitHub buxtronix/Arduino kódtárból a Rotary könyvtárt be kell helyezni a ..\Dokumentumok\Arduino\libraries mappába (https://github.com/buxtronix/arduino/tree/master/libraries/Rotary)
+<ul>
+  <li>LovyanGFX by lovyan03 <code>v1.2.19</code></li>
+  <li>ESP32-audioI2S by schreibfaul1 <code>v3.4.4</code> (master)</li>
+  <li>Adafruit ST7735 and ST7789 Library by Adafruit <code>v1.11.0</code></li>
+  <li>Rotary by buxtronix → <a href="https://github.com/buxtronix/arduino/tree/master/libraries/Rotary">GitHub</a></li>
+</ul>
 
-Funkciók:
+<hr>
 
-AAC, MP3, OPUS, FLAC, OGG/VORBIS FÁJLOK LEJÁTSZÁSA 1.5m-IG
-WiFi térerő alul jobbra, és egy kis wifi rádió logó a jobb felső sarokban
-aktuálisan játszott stream kodek elhelyezve bal felső sarokba
-a bitrate adatok áthelyezve középre a Stream sorba a többi audio adat közé (..CH | ..KHz | ..bit | ..kbps)
-hangerő megjelenítés ikonnal és szám értékkel 
-állomás választás előre feltöltött listából (max. 120db)
-képesség új állomás hozzáadására/törlésére/sorrendezésére a webes felületen
-az utoljára hallgatott állomással indul, az állomáslista kereshető
-első induláskor feldob egy kis ablakot a csatlakozási leírással, majd az adatokat elmenti
-audio puffer kijelzés állapot-színezéssel
-web felületen Reboot gomb az ESP32-höz
-képesség PC adott zene mappa tartalmának lejátszására playlist.m3u alapon, a PC-n egy Python script indítja a stream-et
-ID3Tag-ból olvas címet + előadót
-webes felületen SPIFFS fájl feltöltés indítható, állomás és PC-stream-ben előre-hátra léptetés, új állomás felvétele, szerkesztése, SPIFFS-re másolása, törlése 
-DAC 5102A / CJMCU CS4344 DAC is alkalmazható, utóbbihoz szükséges MCLK pin rendelkezésre áll
-mégis csak került bele egy minimalista VU, szerintem illik is a felületbe, így nem csupán egy statikus felület látható lejátszás közben...
-beépítésre került a yoRadio-hoz készült "Mirosław B. • Radio-Browser API" állomások kereséséhez/mentéséhez
-..folyt.köv.
+<h2>Főbb funkciók</h2>
+
+<ul>
+  <li>Támogatott formátumok: AAC · MP3 · OPUS · FLAC · OGG/Vorbis (kb. 1.5 Mbit/s-ig)</li>
+  <li>WiFi térerő jelző + kis rádió logó</li>
+  <li>Aktuális kodek / bitrate / mintavételezés / csatorna info</li>
+  <li>Hangerő ikon + numerikus érték</li>
+  <li>Előre feltöltött állomáslista (max ~120 db)</li>
+  <li>Webes felületen: állomás keresés, hozzáadás, törlés, sorrendezés</li>
+  <li>Utoljára hallgatott állomás menti és azzal indul</li>
+  <li>Első indításkor csatlakozási segéd</li>
+  <li>Audio puffer állapot jelző (színes)</li>
+  <li>Webes Reboot gomb</li>
+  <li>PC-s zenelejátszás <code>playlist.m3u</code> + Python script segítségével</li>
+  <li>ID3 tag cím/előadó olvasás</li>
+  <li>SPIFFS fájlkezelés a webes felületről (feltöltés, másolás, törlés)</li>
+  <li>Mini VU-mérő kijelzés (minimalista)</li>
+  <li>Radio-Browser API keresés & mentés (yoRadio implementáció alapján)</li>
+</ul>
+
+<hr>
+
+<p align="center">
+  <small>Jelenleg csak lelkes amatőröknek / tesztüzemre ajánlott.<br>
+  Bináris fájlokat igény esetén tudok küldeni a megfelelő hardverre.</small>
+</p>
+
+<p align="center">…folytatjuk 🛠️</p>
