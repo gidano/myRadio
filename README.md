@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  Egyelőre adott hardver konfigurációval használható, Arduino Ide által flashelhető, bináris fájlokat tudok nyújtani St7789 és ILI9488 kijelzőkre.<br>
+  Egyelőre adott hardver konfigurációval használható, bináris fájlokat tudok nyújtani St7789 és ILI9488 kijelzőkre.<br>
   Támogatás nélküli tesztüzemre, lelkes amatőrök számára.
 </p>
 
