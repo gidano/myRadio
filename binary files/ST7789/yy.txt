@@ -3,7 +3,7 @@ Hardver: ESP32-S3_Supermini, ST7789 (320x240px), 4MB flash, 2MB PSRAM, nincs ér
 PIN kiosztás:
 #define TFT_DC          9
 #define TFT_CS          10
-#define TFT_RST         8
+#define TFT_RST         8  // -1 érték legyen, ha EN/RST PIN-re kötöd más ESP32S3 modulon
 #define BRIGHTNESS_PIN  7
 
 #define PIN_MOSI 11
