@@ -30,7 +30,7 @@
 #define TFT_DC           9
 #define TFT_CS          10
 #define TFT_RST         -1
-#define BRIGHTNESS_PIN  14
+#define BRIGHTNESS_PIN  7
 
 #define PIN_MOSI 11
 #define PIN_SCLK 12
@@ -115,7 +115,7 @@
   #define TFT_OFFSET_Y  0
   #define TFT_INVERT    true      // ha a színek fordítottnak tűnnek, legyen true
   #define TFT_RGB_ORDER false     // ha a piros/kék felcserélődött, legyen true
-  #define TFT_ROTATION  3
+  #define TFT_ROTATION  1
 #endif
 
 //================================================================

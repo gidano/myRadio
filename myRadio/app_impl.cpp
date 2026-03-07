@@ -5,6 +5,7 @@
 #include <esp_wifi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <vector>
 #include <Preferences.h>
 #include <freertos/FreeRTOS.h>
@@ -46,10 +47,14 @@ static void saveLastStationToSPIFFS();
 static bool loadLastStationFromSPIFFS(String& url, String& name);
 static void renderLine(LGFX_Sprite& spr, const String& text, int32_t x);
 static void recalcTextMetrics();
+static void reserveHotStrings();
+static void logMemorySnapshot(const char* tag);
 
 #ifndef TFT_MAGENTA
   #define TFT_MAGENTA 0xF81F
 #endif
+
+
 
 
 // ------------------ PIN KIOSZTÁS ------------------ //
@@ -127,6 +132,19 @@ void IRAM_ATTR encoderISR() {
 // Audio watchdog (soft recovery when input buffer stays empty while running)
 #define AUDIO_WATCHDOG 1
 
+// Kíméletes futás két magon:
+// - Arduino loop / UI / web szerver marad az alapértelmezett loopTask magon
+// - az audio dekódolás külön taskon fut, fixen a másik magon
+#ifndef AUDIO_TASK_CORE
+#define AUDIO_TASK_CORE 0
+#endif
+#ifndef AUDIO_TASK_STACK
+#define AUDIO_TASK_STACK 10240
+#endif
+#ifndef AUDIO_TASK_PRIORITY
+#define AUDIO_TASK_PRIORITY 6
+#endif
+
 // WiFi (SPIFFS-ben tárolt SSID/Jelszó)
 static const char* WIFI_CRED_FILE = "/wifi.txt"; // 1. sor SSID, 2. sor PASS
 
@@ -140,6 +158,7 @@ static uint32_t g_wifiDownSince       = 0;
 static uint32_t g_wifiLastAttempt     = 0;
 static uint32_t g_wifiAttemptInterval = 5000;   // ms
 static uint32_t g_wifiAttemptCount    = 0;
+static uint32_t g_connectRequestedAt = 0;
 static bool     g_needStreamReconnect = false;
 
 // Ha 0: csak próbálkozik, nem dob portált automatikusan
@@ -438,11 +457,33 @@ void audioTask(void* param) {
       } else if (cmd.type == ACMD_STOP) {
         audio.stopSong();
       } else if (cmd.type == ACMD_CONNECT_URL) {
+        Serial.print("[AUDIO] Connecting to: ");
+        Serial.println(cmd.url);
+        
+        // HTTP vs HTTPS ellenőrzés
+        if (strncmp(cmd.url, "https://", 8) == 0) {
+          Serial.println("[AUDIO] HTTPS URL detected");
+        } else {
+          Serial.println("[AUDIO] HTTP URL detected");
+        }
+        
         audio.connecttohost(cmd.url);
       }
     }
 
     audio.loop();
+
+        // Ha éppen kapcsolódni próbálunk, de még nem sikerült
+    if (g_connectRequestedAt > 0 && !audio.isRunning()) {
+      uint32_t elapsed = millis() - g_connectRequestedAt;
+      if (elapsed > 3000 && elapsed < 10000) {
+        static uint32_t lastPrint = 0;
+        if (millis() - lastPrint > 2000) {
+          lastPrint = millis();
+          Serial.printf("[AUDIO] Még mindig kapcsolódik... (%lu mp)\n", elapsed/1000);
+        }
+      }
+    }
 
     #if AUDIO_WATCHDOG
     // --- Watchdog: detect prolonged empty input buffer while running ---
@@ -464,14 +505,17 @@ void audioTask(void* param) {
           Serial.printf("[AUDIO] underrun: inBufferFilled=0 (count=%lu)\n", (unsigned long)underrunCount);
         }
 
-        // If we have been empty for a long time, try a soft recovery (stop + reconnect).
-        // Cooldown prevents oscillation.
-        if ((now - emptySince) > 3000 && (now - lastRecoveryAt) > 20000 && g_lastConnectUrl.length()) {
-          lastRecoveryAt = now;
-          Serial.printf("[AUDIO] watchdog recovery: reconnecting to %s\n", g_lastConnectUrl.c_str());
-          audio.stopSong();
-          vTaskDelay(pdMS_TO_TICKS(20));
-          audio.connecttohost(g_lastConnectUrl.c_str());
+        // Ha üres a buffer, de még kapcsolódunk, ne csináljunk semmit
+        if ((now - emptySince) > 8000 && (now - lastRecoveryAt) > 30000 && g_lastConnectUrl.length()) {
+          // Csak akkor próbáljunk újra, ha a kapcsolódás óta eltelt már legalább 10 másodperc
+          if (g_connectRequestedAt == 0 || (now - g_connectRequestedAt) > 10000) {
+            lastRecoveryAt = now;
+            Serial.printf("[AUDIO] watchdog recovery: reconnecting to %s\n", g_lastConnectUrl.c_str());
+            audio.stopSong();
+            vTaskDelay(pdMS_TO_TICKS(20));
+            audio.connecttohost(g_lastConnectUrl.c_str());
+            g_connectRequestedAt = millis();
+          }
         }
       }
     } else {
@@ -883,6 +927,50 @@ static int32_t g_lastTitleX      = INT32_MIN;
 static bool g_forceRedrawText    = true;
 static String g_id3Artist = "";
 static String g_id3Title  = "";
+
+static void reserveHotStrings() {
+  // Csak kapacitást foglalunk előre, működést nem változtatunk.
+  // Cél: kevesebb heap-fragmentáció hosszabb üzem alatt.
+  g_savedSsid.reserve(64);
+  g_savedPass.reserve(96);
+  g_stationName.reserve(128);
+  g_stationUrl.reserve(320);
+  g_playlistSourceUrl.reserve(320);
+  g_playUrl.reserve(320);
+  g_lastConnectUrl.reserve(320);
+  g_uploadPath.reserve(128);
+  g_pendingTitle.reserve(256);
+  g_codec.reserve(16);
+  g_pendingCodec.reserve(16);
+  g_artist.reserve(160);
+  g_title.reserve(160);
+  g_mStation.reserve(256);
+  g_mArtist.reserve(256);
+  g_mTitle.reserve(256);
+  g_lastStationDrawn.reserve(256);
+  g_lastArtistDrawn.reserve(256);
+  g_lastTitleDrawn.reserve(256);
+  g_id3Artist.reserve(160);
+  g_id3Title.reserve(160);
+}
+
+static void logMemorySnapshot(const char* tag) {
+  Serial.printf("[MEM] %s | heap free=%u, min=%u, max=%u",
+                tag,
+                (unsigned)ESP.getFreeHeap(),
+                (unsigned)ESP.getMinFreeHeap(),
+                (unsigned)ESP.getMaxAllocHeap());
+
+  if (psramFound()) {
+    Serial.printf(" | PSRAM free=%u, size=%u",
+                  (unsigned)ESP.getFreePsram(),
+                  (unsigned)ESP.getPsramSize());
+  } else {
+    Serial.print(" | PSRAM: not found");
+  }
+
+  Serial.println();
+}
 static uint32_t g_id3SeenAt = 0;
 static int32_t xStation = 0, xArtist = 0, xTitle = 0;
 static uint32_t lastMarquee = 0;
@@ -973,14 +1061,18 @@ static void recomputeLayout() {
 // ------------------ Sprites ------------------ //
 
 static void initSprites() {
+  const bool havePsram = psramFound();
+
   sprStation.setColorDepth(16);
+  if (havePsram) sprStation.setPsram(true);
   sprStation.createSprite(W, hArtistLine);
   sprStation.fillScreen(TFT_BLACK);
-  sprStation.loadFont(FP_SB_24.c_str());
+  sprStation.loadFont(FP_SB_28.c_str());
   sprStation.setTextWrap(false);
   sprStation.setTextColor(TFT_ORANGE, TFT_BLACK); // ÁLLOMÁS SZÍNE
 
   sprArtist.setColorDepth(16);
+  if (havePsram) sprArtist.setPsram(true);
   sprArtist.createSprite(W, hArtistLine);
   sprArtist.fillScreen(TFT_BLACK);
   sprArtist.loadFont(FP_SB_24.c_str());
@@ -988,6 +1080,7 @@ static void initSprites() {
   sprArtist.setTextColor(TFT_CYAN, TFT_BLACK); // ELŐADÓ SZÍNE
 
   sprTitle.setColorDepth(16);
+  if (havePsram) sprTitle.setPsram(true);
   sprTitle.createSprite(W, hTitleLine);
   sprTitle.fillScreen(TFT_BLACK);
   sprTitle.loadFont(FP_SB_24.c_str());
@@ -995,6 +1088,7 @@ static void initSprites() {
   sprTitle.setTextColor(TFT_SILVER, TFT_BLACK); // DAL CÍM SZÍNE
 
   sprMenu.setColorDepth(16);
+  if (havePsram) sprMenu.setPsram(true);
   sprMenu.createSprite(W, 28);
   sprMenu.fillScreen(TFT_BLACK);
   sprMenu.loadFont(FP_SB_24.c_str());
@@ -2943,11 +3037,18 @@ void drawStartupScreen(uint8_t phase){
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 }
 void app_setup() {
+  WiFiClientSecure client;
+  client.setInsecure();   // HTTPS tanúsítványok kikapcsolása
+  
+  bl_init_pwm();
   bl_init_pwm();
   input_rotary_init(ENC_A, ENC_B, ENC_BTN, encoderISR, &g_encHist);
 
 
   Serial.begin(115200);
+  reserveHotStrings();
+  logMemorySnapshot("boot");
+
   // Stabil dekódoláshoz / streamhez (AAC/MP3) érdemes fixen 240 MHz-en futtatni
   setCpuFrequencyMhz(240);
   delay(300);
@@ -3026,6 +3127,7 @@ while (WiFi.status() != WL_CONNECTED) {
   }
 
   initSprites();
+  logMemorySnapshot("after sprites");
   drawStaticUI();
 
   // VU meter init (audio hook fogja etetni)
@@ -3043,12 +3145,15 @@ while (WiFi.status() != WL_CONNECTED) {
   xTaskCreatePinnedToCore(
     audioTask,
     "audioTask",
-    8192,
+    AUDIO_TASK_STACK,
     nullptr,
-    6,
+    AUDIO_TASK_PRIORITY,
     &audioTaskHandle,
-    0
+    AUDIO_TASK_CORE
   );
+
+  Serial.printf("[TASK] loopTask core=%d, audioTask core=%d\n", xPortGetCoreID(), AUDIO_TASK_CORE);
+  logMemorySnapshot("after audio task");
 
   audioSendVolume(g_Volume);
   startPlaybackCurrent(true);
