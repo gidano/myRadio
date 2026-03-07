@@ -527,6 +527,10 @@ void ui_updateVuMeterOnly(int lvlL, int lvlR, int peakL, int peakR) {
   draw_vu_boombox(lvlL, lvlR, peakL, peakR);
 }
 
+void ui_invalidateVuMeter() {
+  g_vu.valid = false;
+}
+
 void ui_drawHeaderAndLogo(const String& header, int yHeader, int codecIconW, int logoW) {
   if (!C.tft || !C.W) return;
   const int W = *C.W;

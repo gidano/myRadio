@@ -52,6 +52,8 @@ void ui_drawBottomBar(int volume, int bufferPercent, bool wifiConnected);
 void ui_drawVuMeter(int lvlL, int lvlR, int peakL, int peakR);
 // Villogásmentes frissítés: csak akkor rajzol, ha érdemben változott
 void ui_updateVuMeterOnly(int lvlL, int lvlR, int peakL, int peakR);
+// Érvényteleníti a VU cache-t, így a következő rajzoláskor a keret is újraépül.
+void ui_invalidateVuMeter();
 
 // Header + right-top logo (static UI)
 void ui_drawHeaderAndLogo(const String& header, int yHeader, int codecIconW, int logoW);

@@ -10,6 +10,8 @@
 #include <Preferences.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include <freertos/semphr.h>
+#include <stdarg.h>
 #include "Audio.h"
 
 #include "Lovyan_config.h"
@@ -49,6 +51,48 @@ static void renderLine(LGFX_Sprite& spr, const String& text, int32_t x);
 static void recalcTextMetrics();
 static void reserveHotStrings();
 static void logMemorySnapshot(const char* tag);
+static void serialLogf(const char* fmt, ...);
+static void serialLogln(const String& s);
+static void serialLogln(const char* s);
+
+static SemaphoreHandle_t g_logMutex = nullptr;
+
+static inline void ensureLogMutex() {
+  if (!g_logMutex) g_logMutex = xSemaphoreCreateMutex();
+}
+
+static void serialLogf(const char* fmt, ...) {
+  char buf[512];
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+
+  if (g_logMutex && xSemaphoreTake(g_logMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+    Serial.print(buf);
+    xSemaphoreGive(g_logMutex);
+  } else {
+    Serial.print(buf);
+  }
+}
+
+static void serialLogln(const String& s) {
+  if (g_logMutex && xSemaphoreTake(g_logMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+    Serial.println(s);
+    xSemaphoreGive(g_logMutex);
+  } else {
+    Serial.println(s);
+  }
+}
+
+static void serialLogln(const char* s) {
+  if (g_logMutex && xSemaphoreTake(g_logMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+    Serial.println(s);
+    xSemaphoreGive(g_logMutex);
+  } else {
+    Serial.println(s);
+  }
+}
 
 #ifndef TFT_MAGENTA
   #define TFT_MAGENTA 0xF81F
@@ -432,6 +476,7 @@ static inline void audioSendStop() {
 
 static inline void audioSendConnect(const String& u) {
   g_lastConnectUrl = u;
+  g_connectRequestedAt = millis();
   if (!audioQ) return;
   AudioCmd c{};
   c.type = ACMD_CONNECT_URL;
@@ -448,6 +493,7 @@ void audioTask(void* param) {
   uint32_t lastRecoveryAt      = 0;
   uint32_t emptySince          = 0;
   uint32_t underrunCount       = 0;
+  const uint32_t connectGraceMs = 2500;
 
   for (;;) {
     // parancsok gyors ledolgozása
@@ -457,14 +503,16 @@ void audioTask(void* param) {
       } else if (cmd.type == ACMD_STOP) {
         audio.stopSong();
       } else if (cmd.type == ACMD_CONNECT_URL) {
-        Serial.print("[AUDIO] Connecting to: ");
-        Serial.println(cmd.url);
-        
+        emptySince = 0;
+        lastFilledNonZeroAt = millis();
+        lastUnderrunPrintAt = millis();
+        serialLogf("[AUDIO] Connecting to: %s\n", cmd.url);
+
         // HTTP vs HTTPS ellenőrzés
         if (strncmp(cmd.url, "https://", 8) == 0) {
-          Serial.println("[AUDIO] HTTPS URL detected");
+          serialLogln("[AUDIO] HTTPS URL detected");
         } else {
-          Serial.println("[AUDIO] HTTP URL detected");
+          serialLogln("[AUDIO] HTTP URL detected");
         }
         
         audio.connecttohost(cmd.url);
@@ -480,7 +528,7 @@ void audioTask(void* param) {
         static uint32_t lastPrint = 0;
         if (millis() - lastPrint > 2000) {
           lastPrint = millis();
-          Serial.printf("[AUDIO] Még mindig kapcsolódik... (%lu mp)\n", elapsed/1000);
+          serialLogf("[AUDIO] Még mindig kapcsolódik... (%lu mp)\n", elapsed/1000);
         }
       }
     }
@@ -497,12 +545,14 @@ void audioTask(void* param) {
       } else {
         if (emptySince == 0) emptySince = millis();
 
-        // Underrun "edge" logging (rate-limited)
+        // Underrun edge logging: station váltás után adjunk rövid türelmi időt,
+        // hogy a természetes reconnect ne szemetelje tele a logot.
         const uint32_t now = millis();
-        if (now - lastUnderrunPrintAt > 2000) {
+        const bool inConnectGrace = (g_connectRequestedAt > 0) && ((now - g_connectRequestedAt) < connectGraceMs);
+        if (!inConnectGrace && now - lastUnderrunPrintAt > 2000) {
           underrunCount++;
           lastUnderrunPrintAt = now;
-          Serial.printf("[AUDIO] underrun: inBufferFilled=0 (count=%lu)\n", (unsigned long)underrunCount);
+          serialLogf("[AUDIO] underrun: inBufferFilled=0 (count=%lu)\n", (unsigned long)underrunCount);
         }
 
         // Ha üres a buffer, de még kapcsolódunk, ne csináljunk semmit
@@ -510,7 +560,7 @@ void audioTask(void* param) {
           // Csak akkor próbáljunk újra, ha a kapcsolódás óta eltelt már legalább 10 másodperc
           if (g_connectRequestedAt == 0 || (now - g_connectRequestedAt) > 10000) {
             lastRecoveryAt = now;
-            Serial.printf("[AUDIO] watchdog recovery: reconnecting to %s\n", g_lastConnectUrl.c_str());
+            serialLogf("[AUDIO] watchdog recovery: reconnecting to %s\n", g_lastConnectUrl.c_str());
             audio.stopSong();
             vTaskDelay(pdMS_TO_TICKS(20));
             audio.connecttohost(g_lastConnectUrl.c_str());
@@ -895,7 +945,7 @@ static uint32_t lastBufferCheck = 0;
 static int W, H;
 static bool g_uiReady = false;
 static int yHeader, yStationLabel, yStationName, yStreamLabel, yArtist, yTitle, yVol;
-static int hArtistLine, hTitleLine;
+static int hStationLine, hArtistLine, hTitleLine;
 
 static int wifiX, wifiY, wifiW, wifiH;
 static uint32_t lastWifiDraw = 0;
@@ -955,21 +1005,21 @@ static void reserveHotStrings() {
 }
 
 static void logMemorySnapshot(const char* tag) {
-  Serial.printf("[MEM] %s | heap free=%u, min=%u, max=%u",
-                tag,
-                (unsigned)ESP.getFreeHeap(),
-                (unsigned)ESP.getMinFreeHeap(),
-                (unsigned)ESP.getMaxAllocHeap());
+  serialLogf("[MEM] %s | heap free=%u, min=%u, max=%u",
+             tag,
+             (unsigned)ESP.getFreeHeap(),
+             (unsigned)ESP.getMinFreeHeap(),
+             (unsigned)ESP.getMaxAllocHeap());
 
   if (psramFound()) {
-    Serial.printf(" | PSRAM free=%u, size=%u",
-                  (unsigned)ESP.getFreePsram(),
-                  (unsigned)ESP.getPsramSize());
+    serialLogf(" | PSRAM free=%u, size=%u",
+               (unsigned)ESP.getFreePsram(),
+               (unsigned)ESP.getPsramSize());
   } else {
-    Serial.print(" | PSRAM: not found");
+    serialLogf(" | PSRAM: not found");
   }
 
-  Serial.println();
+  serialLogln("");
 }
 static uint32_t g_id3SeenAt = 0;
 static int32_t xStation = 0, xArtist = 0, xTitle = 0;
@@ -1033,17 +1083,22 @@ static void recomputeLayout() {
   tft.loadFont(FP_20.c_str());
   int h20 = tft.fontHeight();
 
-  // Big text lines (station name / artist / title) are 24px font.
+  // Big text lines (station name / artist / title) are 24px font,
+  // but the station name itself uses a bigger bold 28px font.
   tft.loadFont(FP_24.c_str());
   int h24 = tft.fontHeight();
   hArtistLine = h24 + 2;
   hTitleLine  = h24 + 2;
 
+  tft.loadFont(FP_SB_28.c_str());
+  int h28sb = tft.fontHeight();
+  hStationLine = h28sb + 6; // extra room for descenders like g/y/p/j
+
   // Layout positions
   yStationLabel = yHeader + hHeader + 10;
   yStationName  = yStationLabel + h20 + 4 - 5;
 
-  yStreamLabel  = yStationName + hArtistLine + 16;
+  yStreamLabel  = yStationName + hStationLine + 16 + 8;
 
   // 480-as kijelzőn az előadó + dalcím blokk kerüljön lejjebb (profilból)
   yArtist = yStreamLabel + h20 + 6 - 5 + UI_ARTIST_TITLE_Y_SHIFT;
@@ -1065,7 +1120,7 @@ static void initSprites() {
 
   sprStation.setColorDepth(16);
   if (havePsram) sprStation.setPsram(true);
-  sprStation.createSprite(W, hArtistLine);
+  sprStation.createSprite(W, hStationLine);
   sprStation.fillScreen(TFT_BLACK);
   sprStation.loadFont(FP_SB_28.c_str());
   sprStation.setTextWrap(false);
@@ -1463,9 +1518,13 @@ static void updateStationNameUI() {
   g_lastStationX = xS;
 }
 
+static int spriteTextYOffset(const LGFX_Sprite& spr) {
+  return (&spr == &sprStation) ? 1 : 0;
+}
+
 static void renderLine(LGFX_Sprite& spr, const String& text, int32_t x) {
   spr.fillScreen(TFT_BLACK);
-  spr.setCursor(x, 0);
+  spr.setCursor(x, spriteTextYOffset(spr));
   spr.print(text);
 }
 
@@ -1473,13 +1532,14 @@ static void renderLine(LGFX_Sprite& spr, const String& text, int32_t x) {
 // This makes the loop naturally become: "...end * start..." without a dead gap.
 static void renderMarqueeLine(LGFX_Sprite& spr, const String& marqueeText, int32_t x, int wMarq) {
   spr.fillScreen(TFT_BLACK);
+  const int y = spriteTextYOffset(spr);
 
   // First copy
-  spr.setCursor(x, 0);
+  spr.setCursor(x, y);
   spr.print(marqueeText);
 
   // Second copy immediately after the first (so there is always content coming in)
-  spr.setCursor(x + wMarq, 0);
+  spr.setCursor(x + wMarq, y);
   spr.print(marqueeText);
 }
 
@@ -1799,6 +1859,11 @@ static void exitMenuRedrawPlayUI() {
 
   updateMarquee();
   drawBottomBar();
+
+  // A menü teljes törlése lenullázza a VU statikus keretét is, ezért a cache-t
+  // érvénytelenítjük és azonnal újrarajzoljuk a teljes VU-t (keret + sávok).
+  ui_invalidateVuMeter();
+  ui_drawVuMeter(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
 }
 
 // ------------------ Codec/bitrate parse helpers ------------------ //
@@ -1857,7 +1922,7 @@ static void maybePublishId3() {
 
 // ------------------ Audio callback (NEM RAJZOL!) ------------------ //
 void my_audio_info(Audio::msg_t m) {
-  Serial.printf("%s: %s\n", m.s, m.msg);
+  serialLogf("%s: %s\n", m.s, m.msg);
 
   // Track ended detection (local HTTP MP3 playback). Many builds report EOF as a text message.
   {
@@ -2027,6 +2092,7 @@ static void handleButton() {
     if (g_mode == MODE_PLAY) {
       g_mode = MODE_MENU;
       g_menuIndex = g_currentIndex;
+      ui_invalidateVuMeter();
       drawMenuScreen();
     } else {
       exitMenuRedrawPlayUI();
@@ -3046,6 +3112,7 @@ void app_setup() {
 
 
   Serial.begin(115200);
+  ensureLogMutex();
   reserveHotStrings();
   logMemorySnapshot("boot");
 
@@ -3152,7 +3219,7 @@ while (WiFi.status() != WL_CONNECTED) {
     AUDIO_TASK_CORE
   );
 
-  Serial.printf("[TASK] loopTask core=%d, audioTask core=%d\n", xPortGetCoreID(), AUDIO_TASK_CORE);
+  serialLogf("[TASK] loopTask core=%d, audioTask core=%d\n", xPortGetCoreID(), AUDIO_TASK_CORE);
   logMemorySnapshot("after audio task");
 
   audioSendVolume(g_Volume);
@@ -3269,7 +3336,7 @@ if (g_needStreamReconnect && WiFi.status() == WL_CONNECTED) {
   // ---- VU meter frissítés (UI oldalon) ----
   static uint32_t lastVuMs = 0;
   uint32_t nowVu = millis();
-  if (nowVu - lastVuMs >= 60) {
+  if (g_mode == MODE_PLAY && (nowVu - lastVuMs >= 60)) {
     lastVuMs = nowVu;
     ui_updateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
   }
