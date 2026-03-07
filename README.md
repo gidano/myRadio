@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_felulet_480x320px.jpg" alt="myRadio" style="max-width:30%;">
+  <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_felulet_480x320px.jpg" alt="myRadio" style="max-width:50%;">
 </p>
 
 <h2>A használt hardver elemek:</h2>
