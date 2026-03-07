@@ -1,1 +1,22 @@
-yy
+Hardver: ESP32-S3_Supermini, ST7789 (320x240px), 4MB flash, 2MB PSRAM, nincs érintőképernyő, 1 rotary encoder, DAC
+
+PIN kiosztás:
+#define TFT_DC          9
+#define TFT_CS          10
+#define TFT_RST         -1
+#define BRIGHTNESS_PIN  7
+
+#define PIN_MOSI 11
+#define PIN_SCLK 12
+#define PIN_MISO -1   // tartsd -1-en 3-vezetékes SPI esetén ( hanincs olvasás)
+
+#define I2S_DOUT  5
+#define I2S_BCLK  4
+#define I2S_LRC   6
+// #define I2S_MCLK 15  // ezt csak akkor engedélyezd, ha CS4344 vagy más MCLK jelet használó DAC-od van, PCM5102-nél nem kell
+
+#define ENC_A     3  // EC11-nél S1
+#define ENC_B     1  // EC11-nél S2
+#define ENC_BTN   2  // enkóder nyomógomb (PULLUP)
+
+Flash pl. a Flash Download Tool, vagy az ESPConnect használatával (https://thelastoutpostworkshop.github.io/ESPConnect/)
