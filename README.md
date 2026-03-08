@@ -1,6 +1,12 @@
 <h1 align="center">myRadio</h1>
 
 <p align="center">
+  <img src="https://img.shields.io/github/downloads/gidano/myRadio/total?style=for-the-badge" alt="Downloads">
+  <img src="https://img.shields.io/github/stars/gidano/myRadio?style=for-the-badge" alt="Stars">
+  <img src="https://img.shields.io/github/repo-size/gidano/myRadio?style=for-the-badge" alt="Repo size">
+</p>
+
+<p align="center">
   ESP32S3 alapú, saját szoftverre épülő webrádió projekt<br>
   <strong style="color: #e74c3c;">!!! Fejlesztési szakaszban lévő, nem refaktorált projekt !!!</strong>
 </p>
@@ -11,10 +17,8 @@
 </p>
 
 <p align="center">
-  <image-card alt="320x240" src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_320x240px.jpg" ></image-card><br>
-<image-card alt="480x320" src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_480x320px.jpg" ></image-card>
-  <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_320x240px.jpg" alt="myRadio" style="width="320" height="240""><br>
-  <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_480x320px.jpg" alt="myRadio" style="width="480" height="320"">
+  <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_320x240px.jpg" alt="myRadio 320x240" width="320" height="240"><br><br>
+  <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_480x320px.jpg" alt="myRadio 480x320" width="480" height="320">
 </p>
 
 <h2>A használt hardver elemek:</h2>
@@ -33,7 +37,7 @@
 <ul>
   <li>Arduino IDE 2.3.8 - CORE 3.3.7 - (magas bitrátájú adatfolyamok lejátszása csak a megfelelő liblwip módosítások elvégezése után!)</li>
   <li>Arduino IDE paraméterek az alap yoRadio szerint (szükség van PSRAM meglétére)</li>
-  <li>SPIFFS-t használunk az állomás lista (stations.txt), a .vlw típusú fontok, a webfelület és a WiFi adatok (wifi.txt) tárolására</li>
+  <li>SPIFFS-t használunk az állomáslista (stations.txt), a .vlw típusú fontok, a webfelület és a WiFi adatok (wifi.txt) tárolására</li>
 </ul>
 
 <h3>Könyvtárak:</h3>
@@ -42,31 +46,30 @@
   <li>LovyanGFX by lovyan03 v1.2.19</li>
   <li>ESP32-audioI2S-master by schreibfaul1 v3.4.4</li>
   <li>Adafruit ST7735 and ST7789 Library by Adafruit v1.11.0</li>
-  <li>A GitHub buxtronix/Arduino kódtárból a Rotary könyvtárt be kell helyezni a ..\Dokumentumok\Arduino\libraries mappába[](https://github.com/buxtronix/arduino/tree/master/libraries/Rotary)</li>
+  <li>A GitHub buxtronix/Arduino kódtárból a Rotary könyvtárt be kell helyezni a ..\Dokumentumok\Arduino\libraries mappába: <a href="https://github.com/buxtronix/arduino/tree/master/libraries/Rotary">Rotary könyvtár</a></li>
 </ul>
 
 <h2>Funkciók:</h2>
 
 <ul>
-  <li>enkoder hangerő, rövid nyomás Lejátszás "SZÜNET", hosszan nyomva egy soros állomás választásztó menü.
-  a menüben egy kattintással aktivál - OK, hosszan nyomva kilép aktiválás nélkül</li>
-  <li>AAC, MP3, OPUS, FLAC, OGG/VORBIS FÁJLOK LEJÁTSZÁSA 1.5m-IG</li>
+  <li>Enkóder hangerő, rövid nyomás: lejátszás/szünet, hosszan nyomva: egy soros állomásválasztó menü. A menüben egy kattintással aktivál - OK, hosszan nyomva kilép aktiválás nélkül.</li>
+  <li>AAC, MP3, OPUS, FLAC, OGG/VORBIS fájlok lejátszása 1.5M-ig</li>
   <li>WiFi térerő alul jobbra, és egy kis wifi rádió logó a jobb felső sarokban</li>
-  <li>aktuálisan játszott stream kodek elhelyezve bal felső sarokba</li>
-  <li>a bitrate adatok áthelyezve középre a Stream sorba a többi audio adat közé (..CH | ..KHz | ..bit | ..kbps)</li>
-  <li>hangerő megjelenítés ikonnal és szám értékkel</li>
-  <li>állomás választás előre feltöltött listából (max. 120db)</li>
-  <li>képesség állomás hozzáadására/törlésére/sorrendezésére a webes felületen</li>
-  <li>az utoljára hallgatott állomással indul</li>
-  <li>az állomáslista kereshető</li>
-  <li>első induláskor feldob egy kis ablakot a WiFi csatlakozás leírásával (SSID: WebRadio-Setup IP: http://192.168.4.1), majd az adatokat elmenti</li>
-  <li>audio puffer kijelzés telítettség-állapot színezéssel (piros-sárga (40%)-zöld (75%)</li>
-  <li>web felületen Reboot gomb az ESP32-höz</li>
-  <li>képesség PC adott mappa zene tartalmának lejátszására playlist.m3u alapon, a PC-n egy Python script indítja a stream-et</li>
-  <li>PC-Zene lejátszás alatt ID3Tag-ból olvas címet + előadót</li>
-  <li>webes felületen SPIFFS fájl feltöltés indítható, állomás és PC-stream-ben előre-hátra léptetés, új állomás felvétele, szerkesztése, SPIFFS-re másolása, törlése, fényerősség szabályozás csúszkával</li>
+  <li>Aktuálisan játszott stream kodek elhelyezve bal felső sarokba</li>
+  <li>A bitrate adatok áthelyezve középre a Stream sorba a többi audio adat közé (..CH | ..KHz | ..bit | ..kbps)</li>
+  <li>Hangerő megjelenítés ikonnal és számértékkel</li>
+  <li>Állomásválasztás előre feltöltött listából (max. 120 db)</li>
+  <li>Képesség állomás hozzáadására, törlésére, sorrendezésére a webes felületen</li>
+  <li>Az utoljára hallgatott állomással indul</li>
+  <li>Az állomáslista kereshető</li>
+  <li>Első induláskor feldob egy kis ablakot a WiFi-csatlakozás leírásával (SSID: WebRadio-Setup, IP: http://192.168.4.1), majd az adatokat elmenti</li>
+  <li>Audio puffer kijelzés telítettség-állapot színezéssel (piros-sárga 40%-zöld 75%)</li>
+  <li>Webfelületen Reboot gomb az ESP32-höz</li>
+  <li>Képesség PC adott mappa zene tartalmának lejátszására playlist.m3u alapon, a PC-n egy Python script indítja a streamet</li>
+  <li>PC-zene lejátszás alatt ID3 tag-ból olvas címet és előadót</li>
+  <li>Webes felületen SPIFFS fájlfeltöltés indítható, állomás- és PC-stream-ben előre-hátra léptetés, új állomás felvétele, szerkesztése, SPIFFS-re másolása, törlése, fényerősség szabályozás csúszkával</li>
   <li>DAC 5102A / CJMCU CS4344 DAC is alkalmazható, utóbbihoz szükséges MCLK pin rendelkezésre áll</li>
-  <li>mégis csak került bele egy minimalista VU, szerintem illik is a felületbe, így nem csupán egy statikus felület látható lejátszás közben...</li>
-  <li>beépítésre került a yoRadio-hoz készült "Mirosław B. • Radio-Browser API" állomások kereséséhez/mentéséhez</li>
-  <li>..folyt.köv.</li>
+  <li>Mégis csak került bele egy minimalista VU, szerintem illik is a felületbe, így nem csupán egy statikus felület látható lejátszás közben</li>
+  <li>Beépítésre került a yoRadio-hoz készült "Mirosław B. • Radio-Browser API" az állomások kereséséhez és mentéséhez</li>
+  <li>..folyt. köv.</li>
 </ul>
