@@ -82,7 +82,7 @@ Mentéskor ajánlott:
 UTF-8 kódolás
 ```
 
-Szövegszerkesztőnek például a **Notepad++** ajánlott.
+Szövegszerkesztőnek pl. a **Notepad++** ajánlott, amiben egyszerűen beállíthatod a mentett fájl kódolását.
 
 ---
 
@@ -124,3 +124,4 @@ Az állomások:
 
 
 kényelmesen elvégezhető a **webes felületen**.
+
