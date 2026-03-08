@@ -11,6 +11,8 @@
 </p>
 
 <p align="center">
+  <image-card alt="320x240" src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_320x240px.jpg" ></image-card><br>
+<image-card alt="480x320" src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_480x320px.jpg" ></image-card>
   <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_320x240px.jpg" alt="myRadio" style="width="320" height="240""><br>
   <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_480x320px.jpg" alt="myRadio" style="width="480" height="320"">
 </p>
