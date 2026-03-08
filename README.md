@@ -51,14 +51,15 @@
   <li>a bitrate adatok áthelyezve középre a Stream sorba a többi audio adat közé (..CH | ..KHz | ..bit | ..kbps)</li>
   <li>hangerő megjelenítés ikonnal és szám értékkel</li>
   <li>állomás választás előre feltöltött listából (max. 120db)</li>
-  <li>képesség új állomás hozzáadására/törlésére/sorrendezésére a webes felületen</li>
-  <li>az utoljára hallgatott állomással indul, az állomáslista kereshető</li>
-  <li>első induláskor feldob egy kis ablakot a csatlakozási leírással, majd az adatokat elmenti</li>
-  <li>audio puffer kijelzés állapot-színezéssel</li>
+  <li>képesség állomás hozzáadására/törlésére/sorrendezésére a webes felületen</li>
+  <li>az utoljára hallgatott állomással indul</li>
+  <li>az állomáslista kereshető</li>
+  <li>első induláskor feldob egy kis ablakot a WiFi csatlakozás leírásával (SSID: WebRadio-Setup IP: http://192.168.4.1), majd az adatokat elmenti</li>
+  <li>audio puffer kijelzés telítettség-állapot színezéssel (piros-sárga (40%)-zöld (75%)</li>
   <li>web felületen Reboot gomb az ESP32-höz</li>
-  <li>képesség PC adott zene mappa tartalmának lejátszására playlist.m3u alapon, a PC-n egy Python script indítja a stream-et</li>
-  <li>ID3Tag-ból olvas címet + előadót</li>
-  <li>webes felületen SPIFFS fájl feltöltés indítható, állomás és PC-stream-ben előre-hátra léptetés, új állomás felvétele, szerkesztése, SPIFFS-re másolása, törlése</li>
+  <li>képesség PC adott mappa zene tartalmának lejátszására playlist.m3u alapon, a PC-n egy Python script indítja a stream-et</li>
+  <li>PC-Zene lejátszás alatt ID3Tag-ból olvas címet + előadót</li>
+  <li>webes felületen SPIFFS fájl feltöltés indítható, állomás és PC-stream-ben előre-hátra léptetés, új állomás felvétele, szerkesztése, SPIFFS-re másolása, törlése, fényerősség szabályozás csúszkával</li>
   <li>DAC 5102A / CJMCU CS4344 DAC is alkalmazható, utóbbihoz szükséges MCLK pin rendelkezésre áll</li>
   <li>mégis csak került bele egy minimalista VU, szerintem illik is a felületbe, így nem csupán egy statikus felület látható lejátszás közben...</li>
   <li>beépítésre került a yoRadio-hoz készült "Mirosław B. • Radio-Browser API" állomások kereséséhez/mentéséhez</li>
