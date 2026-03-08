@@ -75,3 +75,5 @@
   <li>Beépítésre került a yoRadio-hoz készült "Mirosław B. • Radio-Browser API" az állomások kereséséhez és mentéséhez</li>
   <li>..folyt. köv.</li>
 </ul>
+
+..és, hogy legyen mivel androidról irányítani: <a href="https://github.com/gidano/YoRadio-Controller">YoRadio-Controller</a>
