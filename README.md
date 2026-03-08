@@ -11,7 +11,8 @@
 </p>
 
 <p align="center">
-  ![myRadio 320×240](https://github.com/gidano/myRadio/raw/main/images/myRadio_320x240px.jpg)<img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_320x240px.jpg" alt="myRadio" style="width="320" height="240""><br>
+  ![myRadio 320×240](https://github.com/gidano/myRadio/raw/main/images/myRadio_320x240px.jpg)
+  <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_320x240px.jpg" alt="myRadio" style="width="320" height="240""><br>
   ![myRadio 480×320](https://github.com/gidano/myRadio/raw/main/images/myRadio_480x320px.jpg)
   <img src="https://github.com/gidano/myRadio/raw/main/images/myRadio_480x320px.jpg" alt="myRadio" style="width="480" height="320"">
 </p>
