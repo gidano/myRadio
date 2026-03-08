@@ -125,3 +125,9 @@ Az állomások:
 
 kényelmesen elvégezhető a **webes felületen**.
 
+Amit még a WiFi kapcsolatról tudni kell:
+Alaphelyzetben a rádió indulás után 120mp ideig próbál csatlakozni a megadott adatokkal.
+Ha ez az idő eltelik, újraindul és ismét felkínálja új WiFi adatok bevitelét,
+gondolva az esetleg megváltozott hálózati körülmények adaptálására.
+
+---
