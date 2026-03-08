@@ -46,6 +46,8 @@
 <h2>Funkciók:</h2>
 
 <ul>
+  <li>enkoder hangerő, rövid nyomás Lejátszás "SZÜNET", hosszan nyomva állomás választásztó menü.
+  a menüben egy kattintás a kiválasztottra OK, hosszan nyomva kilép módosítás nélkül</li>
   <li>AAC, MP3, OPUS, FLAC, OGG/VORBIS FÁJLOK LEJÁTSZÁSA 1.5m-IG</li>
   <li>WiFi térerő alul jobbra, és egy kis wifi rádió logó a jobb felső sarokban</li>
   <li>aktuálisan játszott stream kodek elhelyezve bal felső sarokba</li>
