@@ -2,9 +2,7 @@
 
 Az alábbi ábra a **SPIFFS-ben található `data` mappa** szerkezetét mutatja.
 
-![SPIFFS mappa szerkezet](myradio.data.jpg)
-
-### Könyvtár struktúra
+### SPIFFS könyvtár struktúra
 
 ```
 data
@@ -30,13 +28,7 @@ data
 
 # Fájl feltöltés (SPIFFS)
 
-Ha a **webes felület még nincs feltöltve**, először töltsd fel a következő fájlt:
-
-```
-/web/index.html
-```
-
-Ezután a web UI segítségével további fájlokat is fel tudsz tölteni.
+A web UI segítségével további fájlokat is fel tudsz tölteni.
 
 ### Példa: `stations.txt` feltöltése
 
@@ -129,5 +121,6 @@ Az állomások:
 - hozzáadása
 - törlése
 - sorrendezése
+
 
 kényelmesen elvégezhető a **webes felületen**.
