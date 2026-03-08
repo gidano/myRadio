@@ -40,4 +40,5 @@ A flash teljes törlése `0x0` értékkel elvégezhető például az alábbi esz
 
 ### Firmware letöltés
 
-👉 **[Letöltés a Release-ek közül](https://github.com/gidano/myRadio/releases/latest)**
+👉 **[Firmware letöltés](https://github.com/gidano/myRadio/releases/latest)**
+
