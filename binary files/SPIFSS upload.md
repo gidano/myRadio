@@ -120,7 +120,7 @@ Az állomások:
 
 - hozzáadása
 - törlése
-- sorrendezése
+- rendezése
 
 
 kényelmesen elvégezhető a **webes felületen**.
@@ -131,4 +131,5 @@ Ha ez az idő eltelik, újraindul és ismét felkínálja új WiFi adatok bevite
 gondolva az esetleg megváltozott hálózati körülmények adaptálására.<br>
 
 ---
+
 
