@@ -74,6 +74,7 @@
   <li>DAC 5102A / CJMCU CS4344 DAC is alkalmazható, utóbbihoz szükséges MCLK pin rendelkezésre áll</li>
   <li>Mégis csak került bele egy minimalista VU, szerintem illik is a felületbe, így nem csupán egy statikus felület látható lejátszás közben</li>
   <li>Beépítésre került a yoRadio-hoz készült "Mirosław B. • Radio-Browser API" az állomások kereséséhez és mentéséhez</li>
+  <li>Elkészült hozzá egy állomás lista kezelő szoftver, amely beolvassa/konvertálja a yoRadio-féle playlist.csv fájlt Yoradio-ról és PC-ről is</li>li
   <li>..folyt. köv.</li>
 </ul>
 
