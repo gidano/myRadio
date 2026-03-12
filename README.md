@@ -21,7 +21,8 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_320x240px.jpg" alt="myRadio 320x240" width="320" height="240"><br><br>
   <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_480x320px.jpg" alt="myRadio 480x320" width="480" height="320">
-  <img src="https://github.com/gidano/myRadio/blob/main/tools/myRadio_Editor_fel%C3%BClet.jpg" alt="myRadio Editor" width="720" height="">
+  <img src="https://github.com/gidano/myRadio/blob/main/tools/myradio_editor/myRadio_Editor.jpg" alt="myRadio Editor" width="720" height="">
+  <img src="https://github.com/gidano/myRadio/blob/main/tools/myradio_editor/myRadio_Editor.jpg" alt="myRadio Music Server" width="720" height="">
 </p>
 
 <h2>A használt hardver elemek:</h2>
