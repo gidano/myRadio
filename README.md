@@ -77,6 +77,7 @@
   <li>Beépítésre került a yoRadio-hoz készült "Mirosław B. • Radio-Browser API" az állomások kereséséhez és mentéséhez</li>
   <li>Elkészült hozzá egy állomás lista kezelő szoftver, amely beolvassa/konvertálja a yoRadio-féle playlist.csv fájlt Yoradio-ról és PC-ről is.
   Bővebb info a kezdőlap "tools" mappában</li>
+  <li>myRadio Music Server - Egy könnyen használható Windows alkalmazás, amely a számítógépedet zenei streaming szerverré alakítja ESP32 alapú (myRadio, yoRadio) webrádiók számára.</li>
   <li>..folyt. köv.</li>
 </ul>
 
