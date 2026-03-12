@@ -42,6 +42,7 @@ Az alkalmazás segít a lista tisztán tartásában is:
 ## Használati cél
 
 A program célja, hogy a **stations.txt fájl szerkesztése kényelmesen, grafikus felületen történjen**, kézi szövegszerkesztés nélkül.
+A mérete azért ekkora, mert tartalmazza a Python és Qt futtatókörnyezetet, hogy használata ne követelje meg ezek külön telepítését is a PC-re. 
 
 ---
 
