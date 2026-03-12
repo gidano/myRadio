@@ -1,6 +1,6 @@
 # myRadio Music Server
 
-Egy könnyen használható Windows alkalmazás, amely a számítógépedet **zenei streaming szerverré** alakítja **ESP32 alapú myRadio webrádiók** számára.
+Egy könnyen használható Windows alkalmazás, amely a számítógépedet **zenei streaming szerverré** alakítja **ESP32 alapú (myRadio, yoRadio) webrádiók** számára.
 
 Az alkalmazás automatikusan **lejátszási listákat generál** a zenei mappádból, majd HTTP szerveren keresztül elérhetővé teszi őket, így a rádió közvetlenül a PC-ről tud zenét streamelni.
 
@@ -92,7 +92,7 @@ A rádió ezután közvetlenül a számítógépedről fog zenét streamelni.
 
 A legfrissebb verzió innen tölthető le:
 
-⬇ **[Letöltés – myRadio Music Server](https://github.com/gidano/myRadio/releases/download/1.0/myRadio_Music_Server.zip)**
+⬇ **[Letöltés – myRadio Music Server](https://github.com/gidano/myRadio/releases/download/1.1/myRadio_Music_Server_v1.1.zip)**
 
 ---
 
@@ -142,3 +142,4 @@ dist/myRadio Music Server.exe
 
 
 gidano
+
