@@ -115,31 +115,8 @@ A fájl URL-ek automatikusan kódolásra kerülnek, így a speciális karakterek
 
 ---
 
-# Fordítás forrásból
-
-Szükséges:
-
-
-Python 3.x
-PyInstaller
-
-
-Fordítás PowerShell alatt:
-
-
-py -m PyInstaller --onefile --windowed --name "myRadio Music Server" --icon=music_server.ico --clean --noconfirm --add-data 'music_server.ico;.' --add-data 'music_server.png;.' --version-file version_info.txt pc_music_server_gui_v1_1_1.py
-
-
-Az elkészült program itt található:
-
-
-dist/myRadio Music Server.exe
-
-
----
-
 # Szerző
 
-
 gidano
+
 
