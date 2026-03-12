@@ -8,8 +8,8 @@ Az alkalmazás képes letölteni az aktuális lejátszási listát a rádió **I
 
 ## Fő funkciók
 
-- 📡 **Lista letöltése a rádióról** IP-cím alapján  
-- 💾 **Lista betöltése és mentése** PC-ről / PC-re  
+- 📡 **Lista letöltése a rádióról** IP-cím alapján (yoRadio-ról is, .csv formátumot!)  
+- 💾 **Lista betöltése és mentése** PC-ről / PC-re (yoRadio .csv formátumot is, majd stations.txt fájlként kezeli és menti!)  
 - ✏️ **Állomások szerkesztése és módosítása**
 - 🔤 **ABC szerinti rendezés**
 - 🖱️ **Drag & drop átrendezés** – állomások tetszőleges sorrendbe húzhatók
