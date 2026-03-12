@@ -42,3 +42,12 @@ Az alkalmazás segít a lista tisztán tartásában is:
 ## Használati cél
 
 A program célja, hogy a **stations.txt fájl szerkesztése kényelmesen, grafikus felületen történjen**, kézi szövegszerkesztés nélkül.
+
+---
+
+## ⬇️ Letöltés
+
+[![Download](https://img.shields.io/badge/Download-myRadio%20Editor%20v1.0-blue?style=for-the-badge&logo=github)](https://github.com/gidano/myRadio/releases/download/1.0/myRadio_Editor_v1.0.zip)
+
+**Direct download:**  
+https://github.com/gidano/myRadio/releases/download/1.0/myRadio_Editor_v1.0.zip
