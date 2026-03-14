@@ -11,3 +11,4 @@
 ### Módosítva
 - ST7789 kijelzőhöz kisebb layout módosítások
 - Betűméret igazítás az **Előadó / Dal** soroknál
+- A refaktorálásban jelentős lépések történtek
