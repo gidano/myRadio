@@ -40,7 +40,7 @@
 
 <ul>
   <li>Arduino IDE 2.3.8 - CORE 3.3.7 - (magas bitrátájú adatfolyamok lejátszása csak a megfelelő liblwip módosítások elvégezése után!)</li>
-  <li>Arduino IDE ESP32S3 N16R8 esetén [egyedi partíciós táblát](./images/16mb.partition_table.jpg) használ (szükséges a PSRAM!)</li>
+  <li>Arduino IDE ESP32S3 N16R8 esetén [egyedi partíciós táblát](https://github.com/gidano/myRadio/blob/main/images/16mb.partition_table.jpg) használ (szükséges a PSRAM!)</li>
   <li>SPIFFS-t használunk az állomáslista (stations.txt), a fontok, a webfelület és a WiFi adatok (wifi.txt) tárolására</li>
 </ul>
 
