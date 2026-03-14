@@ -40,8 +40,8 @@
 
 <ul>
   <li>Arduino IDE 2.3.8 - CORE 3.3.7 - (magas bitrátájú adatfolyamok lejátszása csak a megfelelő liblwip módosítások elvégezése után!)</li>
-  <li>Arduino IDE paraméterek az alap yoRadio szerint (szükség van PSRAM meglétére)</li>
-  <li>SPIFFS-t használunk az állomáslista (stations.txt), a .vlw típusú fontok, a webfelület és a WiFi adatok (wifi.txt) tárolására</li>
+  <li>Arduino IDE S3N16R8 esetén egyedi partíciós táblát használ (szükséges a PSRAM!)</li>
+  <li>SPIFFS-t használunk az állomáslista (stations.txt), a fontok, a webfelület és a WiFi adatok (wifi.txt) tárolására</li>
 </ul>
 
 <h3>Könyvtárak:</h3>
