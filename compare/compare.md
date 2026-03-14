@@ -7,6 +7,7 @@
 - Állomás váltó felület listaszerűen 5 állomásnevet görget sprite-ban, villogás mentesen
 - verzió szám jelölve az index.html fájlban
 - Az említett változások mindkét képernyő mérethez igazítva
+- A feltöltött bináris fájlok  a webrádióra visszatöltve ellenőrzésen estek át
 
 ### Módosítva
 - ST7789 kijelzőhöz kisebb layout módosítások
