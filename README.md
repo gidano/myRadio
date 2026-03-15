@@ -58,7 +58,7 @@
 
 <ul>
   <li>Készíts egy wifi.txt nevű állományt</li>
-  <li>írd be a használni kívánt SSID/jelszó párosokat (max. 5) <a href="https://github.com/gidano/myRadio/blob/main/binary%20files/SPIFSS%20upload.md">a leírás szerint</>a</li>
+  <li>Írd be a használni kívánt SSID/jelszó páros(oka)t (max. 5) <a href="https://github.com/gidano/myRadio/blob/main/binary%20files/SPIFSS%20upload.md">a leírás szerint</>a</li>
 </ul>
 
 <h2>Funkciók:</h2>
