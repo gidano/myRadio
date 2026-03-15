@@ -62,18 +62,22 @@ Lépések ugyanazok mint a `stations.txt` feltöltésénél.
 
 # wifi.txt formátuma
 
-A `wifi.txt` fájl két sort tartalmaz:
-
-```
-SSID
-jelszó
-```
+A `wifi.txt` fájl két soros tömböket tartalmaz, max 5db SSID/jelszó párost adhatsz meg!
 
 Példa:
 
 ```
 MyWifiNetwork
 titkosjelszo123
+SPACE
+SSID
+jelszó
+SPACE
+SSID
+jelszó
+SPACE
+SSID
+jelszó
 ```
 
 Mentéskor ajánlott:
