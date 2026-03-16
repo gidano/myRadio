@@ -1,0 +1,73 @@
+181.fm Classic Hits	https://listen.181fm.com/181-greatoldies_128k.mp3
+181.fm Good Time Oldies	https://listen.181fm.com/181-goodtime_128k.mp3
+181.fm Highway	https://listen.181fm.com/181-highway_128k.mp3
+AIDA Radio	https://cdn05.radio.cloud:8128/AIDA-OMNIA-GAI
+Amsterdam Funk Channel	https://stream.afc.fm/index.html
+Bdpst Rock	https://bdpstrock.hu/live.mp3
+BDPST ROCK (Hi-Fi)	http://s2.audiostream.hu:8091/bdpstrock_FLAC
+Best Of Rock.FM AC DC	https://bestofrockfm.stream.vip/acdc/mp3-256/bestofrock.fm/
+Bias Rádió	https://admin.biasradio.com/radio/8000/live
+Bithang Yoo Rádió	https://s03.diazol.hu:35162/stream
+Blues Wave	https://blueswave.radio:8000/blueswave
+Cool FM	https://mediagw.e-tiger.net:443/stream/cfmhq
+Csukás Meserádió	https://mr-stream.connectmedia.hu/4611/mr10.mp3
+DanceFM 89.5	http://edge126.rdsnet.ro:84/profm/dancefm.mp3
+Danubius Rádió	https://stream.danubiusradio.hu/danubius_192k	
+Danubius Rádió (Hi-Fi)	https://danubiusradio.hu/live_HiFi.mp3
+Deep Purple Exclusively	https://streaming.exclusive.radio/er/deeppurple/icecast.audio
+Deja Vu	https://carina.streamerr.co/stream/dejavuradio/dejavuradio
+Depeche Mode	http://nl4.mystreaming.net/er/depechemode/icecast.audio
+DJ Now!	https://s01.diazol.hu:10072/djnow
+Eric Clapton	https://streaming.exclusive.radio/er/ericclapton/icecast.audio
+Fleetwood Mac Exclusively	https://streaming.exclusive.radio/er/fleetwoodmac/icecast.audio
+Funky Corner	http://ais-edge147-dal03.cdnstream.com:80/2447_192.mp3
+I Love Pécs	http://radio.ilovepecs.hu:8200/ilp.mp3
+Irish Folk	https://stream.laut.fm/irish-folk
+Irish Pub	https://solid24.streamupsolutions.com/proxy/vbkiacud?mp=/live
+Klubrádió	https://stream.klubradio.hu:8443/bpstream
+Kossuth Rádió	https://icast.connectmedia.hu/4726/mr1ex.mp3
+La Grosse Radio Reggae	https://hd.lagrosseradio.info/lagrosseradio-reggae-192.mp3
+LapFox (128 VOR)	https://radio.lapfoxradio.com/radio/8000/stream-ogg-128.ogg
+Laza Rádió	https://stream.lazaradio.com/live.aac
+Luxfunk	https://luxfunkbroadcast.com:443/proxy/luxfunkradio/stream
+Magic Disco	http://live2.magicdiscoradio.com:4420/
+Megadance	http://gamershouse.hu:8000/livemega.mp3
+Next FM	https://stream.nextfm.hu/radio/8000/nextfmhu.mp3
+Oxygen Magyar Zene	https://oxygenmusic.hu:8443/oxygenmagyarzene
+Oxygen Music	https://oxygenmusic.hu:8443/oxygenmusic_192
+Pannon (Szabadka)	http://breddstream.unrealhosting.hu:4120/
+Pannonia	https://ip157.ozelip.com/8130/stream
+ParkFM	https://s03.diazol.hu:7142/stream.mp3
+Petőfi Rádió	https://icast.connectmedia.hu/4738/mr2.mp3
+Poptarisznya	http://adas.poptarisznya.hu:8200/live.mp3/
+Poptarisznya Oldies	http://adas.poptarisznya.hu:8200/oldies.mp3
+Rádió 1	https://icast.connectmedia.hu/5201/live.mp3
+Radio Blues	http://streams.radiomast.io/radioblues-flac
+Radio Comedy	https://a7.asurahosting.com:8430/radio.mp3
+Radio Italo4you	https://ssl-1.radiohost.pl:8018/stream
+Radioparadise (VOR)	http://stream-dc1.radioparadise.com/rp_192m.ogg
+Radioparadise Rock (FLAC)	http://stream.radioparadise.com/rock-flacm
+REGGAE CHILL CAFE	https://maggie.torontocast.com:2020/stream/reggaechillcafe
+Reggae141.com	http://das-edge27-sa23-lax02.cdnstream.com:80/1301_128
+Regina Győr	https://cast1.asurahosting.com:443/proxy/zoltan1/stream
+Retro Rádió	https://icast.connectmedia.hu/5002/live.mp3
+Rock FM	https://icast.connectmedia.hu/5301/live.mp3
+Roxy Rádió	https://s2.audiostream.hu/roxy_192k
+Sláger FM	http://92.61.114.159:7812/slagerfm256.mp3
+Soma FM Reggae	https://ice2.somafm.com/reggae-128-mp3
+Sunshine FM	http://stream.composeit.hu:8100/sunshine
+SuperDJ	https://stream.diazol.hu:35150/stream
+Teszt AAC 320kbps 24b/48k	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac-lo
+Teszt AAC 320kbps 24b/96k	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac
+Teszt FLAC 24b/96k	https://motherearth.streamserver24.com/listen/motherearth/motherearth.flac-lo
+Teszt LapFox (320 VOR)	https://radio.lapfoxradio.com/radio/8000/stream-ogg-320.ogg
+Teszt Laza Radio (VOR)	http://stream.lazaradio.com:8100/live.ogg
+Teszt liblwip csere	https://s2.euer.tv/audio320
+Teszt Tilos (OPUS)	https://stream.tilos.hu/tilos.opus
+Tilos	http://stream.tilos.hu/tilos_128.mp3
+WDWH-Roots of Rock	http://s4.voscast.com:8950/stream
+Youventus Rádió	http://s2.audiostream.hu/juventus_192k
+Youventus Rádió (Hi-Fi)	http://s2.audiostream.hu:8090/juventus_FLAC
+Zebrádió	https://stream.zebradio.hu:8443/zebradio
+ZZ Top Exclusively	https://2.mystreaming.net/er/zztop/icecast.audio
+PC/Zene - kevert	http://192.168.31.101:8000/playlist_shuffle.m3u
