@@ -14,4 +14,4 @@ Az alkalmazás automatikusan **lejátszási listákat generál** a zenei mappád
 
 ---
 
-# Szerző: gidano
+Szerző: gidano
