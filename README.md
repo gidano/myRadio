@@ -17,11 +17,7 @@
 <p align="center">
 A firmware jelenleg az alábbi nyelveket támogatja:
 
-Nyelv	Kód
-Magyar	HU
-Angol	EN
-Német	DE
-Lengyel	PL
+Magyar	HU  Angol	EN  Német	DE  Lengyel	PL
 
 A nyelv fordításkor választható a következő fájlban:
 
