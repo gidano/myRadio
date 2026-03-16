@@ -8,4 +8,8 @@ Az alkalmazás képes letölteni az aktuális lejátszási listát a rádió **I
 
 ## Elérhetőség
 
-[myRadio Editor](https://github.com/gidano/myRadio-Editor))
+[myRadio Editor](https://github.com/gidano/myRadio-Editor)
+
+---
+
+Szerző: gidano
