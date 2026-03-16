@@ -2,7 +2,7 @@
 
 **HU**<br>
 Egy könnyen használható Windows alkalmazás, amely a számítógépedet **zenei streaming szerverré** alakítja **ESP32 alapú (myRadio, yoRadio) webrádiók** számára.<br>
-Az alkalmazás automatikusan **lejátszási listákat generál** a zenei mappádból, majd HTTP szerveren keresztül elérhetővé teszi őket, így a rádió közvetlenül a PC-ről tud zenét streamelni.<br>
+Az alkalmazás automatikusan **lejátszási listákat generál** a zenei mappádból, majd HTTP szerveren keresztül elérhetővé teszi őket, így a rádió közvetlenül a PC-ről tud zenét streamelni.<br><br>
 **Python telepítés nem szükséges**, az alkalmazás egyetlen EXE fájlként fut.
 
 **EN**<br>
