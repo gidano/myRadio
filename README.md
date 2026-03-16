@@ -2,19 +2,33 @@
 
 <p align="center">
   <!-- 
-  -->
   <img src="https://img.shields.io/github/downloads/gidano/myRadio/total?style=for-the-badge&cacheSeconds=60" alt="Total Downloads">
+  -->
   <img src="https://img.shields.io/github/stars/gidano/myRadio?style=for-the-badge" alt="Stars">
   <img src="https://img.shields.io/github/repo-size/gidano/myRadio?style=for-the-badge" alt="Repo size">
 </p>
 
 <p align="center">
   ESP32S3 alapú, saját szoftverre épülő webrádió projekt<br>
-  <strong style="color: #e74c3c;">!!! Fejlesztési szakaszban lévő, nem refaktorált projekt !!!</strong>
+  <strong style="color: #e74c3c;">!!! Fejlesztési szakaszban lévő projekt !!!</strong>
+</p>
+
+🌍 Támogatott nyelvek
+<p align="center">
+A firmware jelenleg az alábbi nyelveket támogatja:
+
+Nyelv	Kód
+Magyar	HU
+Angol	EN
+Német	DE
+Lengyel	PL
+
+A nyelv fordításkor választható a következő fájlban:
+
+Lovyan_config.h
 </p>
 
 <p align="center">
-  Egyelőre adott hardver konfigurációval használható, bináris fájlokat tudok nyújtani ST7789 és ILI9488 kijelzőkre.<br>
   Támogatás nélküli tesztüzemre, lelkes amatőrök számára.
 </p>
 
