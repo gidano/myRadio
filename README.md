@@ -16,9 +16,9 @@
 🌍 Támogatott nyelvek
 <p align="center">
 
-Magyar	HU  Angol	EN  Német	DE  Lengyel	PL
+Magyar	(HU)  Angol	(EN)  Német	(DE)  Lengyel	(PL)
 
-A nyelv fordításkor választható, a következő fájlban:  Lovyan_config.h
+A nyelv fordításkor választható, a <b>Lovyan_config.h</b> fájlban: 
 </p>
 
 <p align="center">
