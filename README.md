@@ -15,13 +15,10 @@
 
 🌍 Támogatott nyelvek
 <p align="center">
-A firmware jelenleg az alábbi nyelveket támogatja:
 
 Magyar	HU  Angol	EN  Német	DE  Lengyel	PL
 
-A nyelv fordításkor választható a következő fájlban:
-
-Lovyan_config.h
+A nyelv fordításkor választható, a következő fájlban:  Lovyan_config.h
 </p>
 
 <p align="center">
