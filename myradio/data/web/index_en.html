@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>myRadio Steuerung</title>
+    <title>myRadio Control</title>
     <style>
         body { 
             font-family: sans-serif; 
@@ -233,19 +233,19 @@
     <div class="container">
         <h1>📻 MyRadio</h1>
     <p style="margin-top:-8px">
-      <a href="/upload" style="color:#7fd; text-decoration:underline;">Datei-Upload (SPIFFS)</a>
+      <a href="/upload" style="color:#7fd; text-decoration:underline;">File upload (SPIFFS)</a>
       <span style="opacity:.6"> | </span>
-      <a href="/search" style="color:#7fd; text-decoration:underline;">🔎 Sendersuche</a>
+      <a href="/search" style="color:#7fd; text-decoration:underline;">🔎 Radio search</a>
     </p>
         
         <div class="status-bar">
-            <div id="nowPlaying" class="now-playing">🎵 Laden...</div>
+            <div id="nowPlaying" class="now-playing">🎵 Loading...</div>
             <div id="artistTitle" class="artist-title"></div>
             <div id="codecInfo" class="codec-info"></div>
             
             <!-- Buffer kijelző -->
             <div id="bufferContainer" class="buffer-container" style="display: none;">
-                <div class="buffer-label">Pufferstatus</div>
+                <div class="buffer-label">Buffer status</div>
                 <div class="buffer-bar">
                     <div id="bufferFill" class="buffer-fill" style="width: 0%;"></div>
                 </div>
@@ -259,7 +259,7 @@
             </div>
 
 <div class="brightness-control" style="display:flex; align-items:center; justify-content:center; gap:10px; margin:10px 0 0;">
-    <span style="min-width:80px; text-align:right; color:#bbb;">Helligkeit</span>
+    <span style="min-width:80px; text-align:right; color:#bbb;">Brightness</span>
     <input id="brightnessSlider" type="range" min="0" max="255" value="255" style="width:220px;">
     <span id="brightnessValue" style="min-width:36px; text-align:left; color:#bbb;">255</span>
 </div>
@@ -274,21 +274,21 @@
 
             <!-- Track (playlist) léptetés -->
             <div class="control-buttons" style="margin-top: 10px;">
-                <button class="control-btn" title="Vorheriger Titel" onclick="prevTrack()">⏮🎵</button>
-                <button class="control-btn" title="Nächster Titel" onclick="nextTrack()">⏭🎵</button>
+                <button class="control-btn" title="Previous track" onclick="prevTrack()">⏮🎵</button>
+                <button class="control-btn" title="Next track" onclick="nextTrack()">⏭🎵</button>
             </div>
 
 
         
         <div style="display:flex; gap:8px; margin: 12px 0; flex-wrap: wrap; justify-content:center;">
-            <input id="newName" class="search-box" style="margin:0; flex: 1; min-width: 220px;" placeholder="Neuer Sendername">
-            <input id="newUrl"  class="search-box" style="margin:0; flex: 2; min-width: 260px;" placeholder="Stream-URL">
+            <input id="newName" class="search-box" style="margin:0; flex: 1; min-width: 220px;" placeholder="New station name">
+            <input id="newUrl"  class="search-box" style="margin:0; flex: 2; min-width: 260px;" placeholder="Stream URL">
             <button class="control-btn" style="width:auto; padding:0 14px; height:48px; border-radius:12px;" onclick="addStation()">+</button>
         </div>
 
-<input type="text" id="search" class="search-box" placeholder="🔍 Sender suchen..." onkeyup="filterStations()">
+<input type="text" id="search" class="search-box" placeholder="🔍 Search stations..." onkeyup="filterStations()">
         
-        <div id="status" class="status">Verbindung...</div>
+        <div id="status" class="status">Connecting...</div>
         <div id="list" class="station-list"></div>
 		<!-- verzió szám az állomás lista alatt -->
         <div style="
@@ -309,7 +309,7 @@
         
         <!-- Reset gomb a láblécben -->
         <div class="footer" style="margin-top: -10px;">
-            <button class="control-btn reset" onclick="resetESP32()">🔄 ESP32 neu starten</button>
+            <button class="control-btn reset" onclick="resetESP32()">🔄 Restart ESP32</button>
         </div>
     </div>
 
@@ -334,10 +334,10 @@
                 document.getElementById('playPauseBtn').innerHTML = paused ? '▶' : '⏸';
                 renderStationList();
                 updateNowPlaying(data);
-                document.getElementById('status').innerText = `${stations.length} Sender geladen.`;
+                document.getElementById('status').innerText = `${stations.length} stations loaded.`;
             } catch (e) {
                 console.error('Error while loading stations:', e);
-                document.getElementById('status').innerText = "Liste konnte nicht geladen werden!";
+                document.getElementById('status').innerText = "Failed to load list!";
             }
         }
 
@@ -345,7 +345,7 @@
             const name = document.getElementById('newName').value.trim();
             const url  = document.getElementById('newUrl').value.trim();
             if (!name || !url) {
-                alert('Bitte einen Namen und eine URL eingeben!');
+                alert('Enter a name and URL!');
                 return;
             }
             const body = new URLSearchParams({ name, url });
@@ -355,7 +355,7 @@
                 body
             });
             if (!res.ok) {
-                alert('Hinzufügen / Speichern fehlgeschlagen.');
+                alert('Failed to add / save.');
                 return;
             }
             document.getElementById('newName').value = '';
@@ -364,7 +364,7 @@
         }
 
         async function deleteStation(index) {
-            if (!confirm('Diesen Sender löschen?')) return;
+            if (!confirm('Delete this station?')) return;
 
             const body = new URLSearchParams({ index: String(index) });
             const res = await fetch('/api/stations/delete', {
@@ -373,7 +373,7 @@
                 body
             });
             if (!res.ok) {
-                alert('Löschen fehlgeschlagen.');
+                alert('Delete failed.');
                 return;
             }
             await fetchStations();
@@ -474,7 +474,7 @@
         }
 
         function updateNowPlaying(data) {
-            let nowPlayingText = data.stationName || 'Unbekannter Sender';
+            let nowPlayingText = data.stationName || 'Unknown station';
             let artistTitleText = '';
             
             if (data.artist && data.artist.length > 0) {
@@ -518,9 +518,9 @@
                 btn.draggable = false; // drag&drop via handle only
                 btn.innerHTML = `<span>${station.name}</span>
                     <span style="display:flex; gap:10px; align-items:center;">
-                        <button class="icon-btn drag-handle" title="Neu anordnen" aria-label="Neu anordnen">☰</button>
-                        <button class="icon-btn edit-btn" title="Bearbeiten" aria-label="Bearbeiten">✏️</button>
-                        <button class="delete-btn" title="Löschen" aria-label="Löschen">🗑</button>
+                        <button class="icon-btn drag-handle" title="Reorder" aria-label="Reorder">☰</button>
+                        <button class="icon-btn edit-btn" title="Edit" aria-label="Edit">✏️</button>
+                        <button class="delete-btn" title="Delete" aria-label="Delete">🗑</button>
                     </span>`;
 
                 // Click on row selects station
@@ -543,14 +543,14 @@ editBtn.onclick = (e) => {
   // Név input
   const nameInput = document.createElement('input');
   nameInput.value = oldName;
-  nameInput.placeholder = "Sendername";
+  nameInput.placeholder = "Station name";
   nameInput.style.flex = "1";
   nameInput.style.padding = "4px";
 
   // URL input
   const urlInput = document.createElement('input');
   urlInput.value = oldUrl;
-  urlInput.placeholder = "Stream-URL";
+  urlInput.placeholder = "Stream URL";
   urlInput.style.flex = "1";
   urlInput.style.padding = "4px";
 
@@ -610,7 +610,7 @@ editBtn.onclick = (e) => {
     const newUrl  = urlInput.value.trim();
 
     if (!newName) {
-      alert("Der Name darf nicht leer sein.");
+      alert("Name cannot be empty.");
       return;
     }
 
@@ -631,7 +631,7 @@ editBtn.onclick = (e) => {
       station.url = newUrl;
       renderStationList();
     } else {
-      alert("Speichern fehlgeschlagen.");
+      alert("Save failed.");
     }
   };
 
@@ -675,7 +675,7 @@ editBtn.onclick = (e) => {
 
                     const ok = await reorderStations(from, to);
                     if (!ok) {
-                        alert('Neuordnung fehlgeschlagen.');
+                        alert('Reorder failed.');
                         return;
                     }
 
@@ -734,7 +734,7 @@ editBtn.onclick = (e) => {
             }
         }
 
-async function setHelligkeit(val) {
+async function setBrightness(val) {
     const v = Math.max(0, Math.min(255, parseInt(val, 10) || 0));
     document.getElementById('brightnessValue').innerText = v;
     try {
@@ -744,7 +744,7 @@ async function setHelligkeit(val) {
     }
 }
 
-async function fetchHelligkeit() {
+async function fetchBrightness() {
     try {
         const response = await fetch('/api/brightness');
         const data = await response.json();
@@ -787,20 +787,20 @@ async function fetchHelligkeit() {
 
         // ESP32 újraindítása
         async function resetESP32() {
-            if (confirm('Möchtest du den ESP32 wirklich neu starten?')) {
+            if (confirm('Are you sure you want to restart the ESP32?')) {
                 try {
                     const response = await fetch('/api/reset', { method: 'POST' });
                     if (response.ok) {
-                        alert('Der ESP32 wird neu gestartet...');
+                        alert('The ESP32 is restarting...');
                         setTimeout(() => {
                             location.reload();
                         }, 5000);
                     } else {
-                        alert('Neustartfehler!');
+                        alert('Restart error!');
                     }
                 } catch (e) {
-                    console.error('Fehler:', e);
-                    alert('Netzwerkfehler!');
+                    console.error('Hiba:', e);
+                    alert('Network error!');
                 }
             }
         }
@@ -812,12 +812,12 @@ async function fetchHelligkeit() {
         fetchBufferStatus();
         
         
-// Helligkeit slider
+// Brightness slider
 const br = document.getElementById('brightnessSlider');
 if (br) {
-    br.addEventListener('input', (e) => setHelligkeit(e.target.value));
+    br.addEventListener('input', (e) => setBrightness(e.target.value));
 }
-fetchHelligkeit();
+fetchBrightness();
 
 // Autómatikus frissítés
         setInterval(fetchStatus, 3000);
