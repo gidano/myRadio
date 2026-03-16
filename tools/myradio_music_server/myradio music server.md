@@ -10,7 +10,7 @@ Az alkalmazás automatikusan **lejátszási listákat generál** a zenei mappád
 
 ## Elérhetőség
 
-![myRadio Music Server](https://github.com/gidano/myRadio-Music-Server)
+[myRadio Music Server](https://github.com/gidano/myRadio-Music-Server)
 
 ---
 
