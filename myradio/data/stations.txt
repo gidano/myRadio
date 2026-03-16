@@ -57,13 +57,8 @@ Sláger FM	http://92.61.114.159:7812/slagerfm256.mp3
 Soma FM Reggae	https://ice2.somafm.com/reggae-128-mp3
 Sunshine FM	http://stream.composeit.hu:8100/sunshine
 SuperDJ	https://stream.diazol.hu:35150/stream
-Teszt AAC 320kbps 24b/48k	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac-lo
-Teszt AAC 320kbps 24b/96k	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac
-Teszt FLAC 24b/96k	https://motherearth.streamserver24.com/listen/motherearth/motherearth.flac-lo
-Teszt LapFox (320 VOR)	https://radio.lapfoxradio.com/radio/8000/stream-ogg-320.ogg
-Teszt Laza Radio (VOR)	http://stream.lazaradio.com:8100/live.ogg
 Teszt liblwip csere	https://s2.euer.tv/audio320
-Teszt Tilos (OPUS)	https://stream.tilos.hu/tilos.opus
+Tilos (OPUS)	https://stream.tilos.hu/tilos.opus
 Tilos	http://stream.tilos.hu/tilos_128.mp3
 WDWH-Roots of Rock	http://s4.voscast.com:8950/stream
 Youventus Rádió	http://s2.audiostream.hu/juventus_192k
