@@ -1,7 +1,9 @@
-HU
+HU</br>
+<p align="center">
 Ha nem N16R8 jelölésű S3 modult használsz, a fordítani kívánt könyvtárból FELTÉTLENÜL TÖRÖLD a "partitions.csv" fájlt!
 Ha S3 Supermini vagy Zero panelt használsz, akkor is FELTÉTLENÜL TÖRÖLD a "partitions.csv" fájlt a könyvtárból!
 A "partitions.csv" fájl kizárólag 16MB flash méretű S3 modulnál használható a "Custom" beállítással!
+</p>
 
 EN
 If you are not using an S3 module marked N16R8, you MUST DELETE the "partitions.csv" file from the directory you want to flash!
