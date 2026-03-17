@@ -18,7 +18,7 @@
 
 Magyar	(HU)  Angol	(EN)  Német	(DE)  Lengyel	(PL)
 
-A nyelv fordításkor választható, a <b>Lovyan_config.h</b> fájlban: 
+A nyelv fordításkor választható, a <b>Lovyan_config.h</b> fájlban. 
 </p>
 
 <p align="center">
