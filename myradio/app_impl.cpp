@@ -73,6 +73,7 @@ static void logMemorySnapshot(const char* tag);
 static void serialLogf(const char* fmt, ...);
 static void serialLogln(const String& s);
 static void serialLogln(const char* s);
+static String clipTextKeepRight(LGFX_Device* dev, const String& s, int maxW);
 bool app_isMenuMode();
 void app_exitMenuRedrawPlayUI();
 bool startPlaybackCurrent(bool allowReloadPlaylist);
@@ -1178,6 +1179,24 @@ static void drawMenuListArea() {
   ui_stationSelectorDraw();
 }
 
+static String clipTextKeepRight(LGFX_Device* dev, const String& s, int maxW) {
+  if (!dev || maxW <= 0) return "";
+  if (dev->textWidth(s.c_str()) <= maxW) return s;
+
+  const char* dots = "...";
+  const int dotsW = dev->textWidth(dots);
+  if (dotsW >= maxW) return "";
+
+  String tail;
+  tail.reserve(s.length());
+  for (int i = (int)s.length() - 1; i >= 0; --i) {
+    String trial = String(s[i]) + tail;
+    if (dev->textWidth((String(dots) + trial).c_str()) > maxW) break;
+    tail = trial;
+  }
+  return String(dots) + tail;
+}
+
 static void redrawMenuCounterAndList() {
   if (g_mode != MODE_MENU) return;
 
@@ -1273,12 +1292,33 @@ static void drawMenuScreen() {
   tft.print(lang::ui_ok_exit_hint);
 
   tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
-  tft.setCursor(sidePad, yIp);
   tft.setTextColor(TFT_CYAN, TFT_BLACK);
   if (WiFi.status() == WL_CONNECTED) {
-    tft.print(lang::ui_ip_prefix);
-    tft.print(WiFi.localIP());
+    const String ipText = String(lang::ui_ip_prefix) + WiFi.localIP().toString();
+
+    String activeSsid = wifi_manager_active_ssid();
+    if (!activeSsid.length()) activeSsid = WiFi.SSID();
+    String ssidText = activeSsid.length() ? (String("SSID: ") + activeSsid) : String();
+
+    const int rightPad = (W <= 320) ? 0 : 2;
+    const int minGap = (W <= 320) ? 8 : 14;
+    const int ipW = tft.textWidth(ipText);
+    const int ssidRightEdge = W - rightPad;
+    const int maxSsidW = ssidText.length() ? (ssidRightEdge - (ipW + minGap)) : 0;
+
+    tft.setCursor(sidePad, yIp);
+    tft.print(ipText);
+
+    if (ssidText.length() && maxSsidW > 24) {
+      ssidText = clipTextKeepRight(&tft, ssidText, maxSsidW);
+      if (ssidText.length()) {
+        tft.setTextDatum(top_right);
+        tft.drawString(ssidText, ssidRightEdge, yIp);
+        tft.setTextDatum(top_left);
+      }
+    }
   } else {
+    tft.setCursor(sidePad, yIp);
     tft.print(lang::ui_no_wifi_ip);
   }
 }
