@@ -38,7 +38,6 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 </p>
 
 <p align="center">
-  <img src="https://github.com/gidano/myRadio/blob/main/images/myradiologo_240.png" alt="myRadio logo 320x240" width="320" height="240"><br>
   <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_320x240px.jpg" alt="myRadio 320x240" width="320" height="240"><br>
   <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_480x320px.jpg" alt="myRadio 480x320" width="480" height="320"><br>
 </p>
