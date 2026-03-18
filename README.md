@@ -22,17 +22,17 @@
 
 🌍 Támogatott nyelvek / Supported languages
 
-<p align="center">
+<p align="left">
 Magyar (HU) &nbsp; Angol (EN) &nbsp; Német (DE) &nbsp; Lengyel (PL)<br>
 Hungarian (HU) &nbsp; English (EN) &nbsp; German (DE) &nbsp; Polish (PL)
 </p>
 
-<p align="center">
+<p align="left">
 A nyelv fordításkor választható, a <b>Lovyan_config.h</b> fájlban.<br>
 The language can be selected at compile time in <b>Lovyan_config.h</b>.
 </p>
 
-<p align="center">
+<p align="left">
   Támogatás nélküli tesztüzemre.<br>
   For test use without support.
 </p>
