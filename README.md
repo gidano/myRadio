@@ -21,8 +21,8 @@
 🌍 Támogatott nyelvek / Supported languages
 
 <p align="left">
-**Magyar (HU) Angol (EN) Német (DE) Lengyel (PL)**<br>
-**Hungarian (HU) English (EN) German (DE) Polish (PL)**
+<b>Magyar (HU) Angol (EN) Német (DE) Lengyel (PL)</b><br>
+<b>Hungarian (HU) English (EN) German (DE) Polish (PL)</b>
 </p>
 
 <p align="left">
