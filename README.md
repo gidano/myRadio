@@ -54,7 +54,7 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 
 ## Szoftver / Software
 
-- Arduino IDE 2.3.8 - CORE 3.3.7 - (magas bitrátájú adatfolyamok lejátszása csak a megfelelő liblwip módosítások elvégezése után! / high bitrate stream playback only after applying the necessary liblwip modifications!)
+- Arduino IDE 2.3.8 - CORE 3.3.7 - (magas bitrátájú adatfolyamok lejátszása csak a megfelelő [liblwip módosítások elvégezése](https://github.com/gidano/myRadio/Audio_IDF_Mod/Playing high-bitrate stations.pdf) után! / high bitrate stream playback only after applying the necessary liblwip modifications!)
 - A rádió működése PSRAM meglétére építkezik / The radio relies on the presence of PSRAM
 - Arduino IDE ESP32S3 N16R8 esetén / for ESP32S3 N16R8 uses [egyedi partíciós táblát / custom partition table](https://github.com/gidano/myRadio/blob/main/images/16mb.partition_table.jpg)
 - SPIFFS-t használunk az állomáslista (stations.txt), a fontok, a webfelület és a WiFi adatok (wifi.txt) tárolására / SPIFFS is used to store the station list (stations.txt), fonts, web interface and WiFi credentials (wifi.txt)
