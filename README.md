@@ -1,5 +1,3 @@
-<h1 align="center">myRadio</h1>
-
 <p align="center">
   <img src="https://github.com/gidano/myRadio/blob/main/images/myradiologo_240.png" alt="myRadio logo 320x240" width="320" height="240">
 </p>
