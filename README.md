@@ -56,7 +56,7 @@ A nyelv fordításkor választható, a <b>Lovyan_config.h</b> fájlban.
 
 <ul>
   <li>LovyanGFX by lovyan03 v1.2.19</li>
-  <li>ESP32-audioI2S-master by schreibfaul1 v3.4.4</li>
+  <li>ESP32-audioI2S-master by schreibfaul1 v3.4.5</li>
   <li>Adafruit ST7735 and ST7789 Library by Adafruit v1.11.0</li>
   <li>A GitHub buxtronix/Arduino kódtárból a Rotary könyvtárt be kell helyezni a ..\Dokumentumok\Arduino\libraries mappába: <a href="https://github.com/buxtronix/arduino/tree/master/libraries/Rotary">Rotary könyvtár</a></li>
 </ul>
