@@ -26,7 +26,8 @@ A nyelv fordításkor választható, a <b>Lovyan_config.h</b> fájlban.
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_320x240px.jpg" alt="myRadio 320x240" width="320" height="240"><br><br>
+  <img src="https://github.com/gidano/myRadio/blob/main/images/myradiologo_240.png" alt="myRadio logo 320x240" width="320" height="240">
+  <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_320x240px.jpg" alt="myRadio 320x240" width="320" height="240">
   <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_480x320px.jpg" alt="myRadio 480x320" width="480" height="320">
   <img src="https://github.com/gidano/myRadio/blob/main/tools/myradio_editor/myRadio_Editor.jpg" alt="myRadio Editor" width="720" height="">
   <img src="https://github.com/gidano/myRadio/blob/main/tools/myradio_music_server/myradio.music.server.jpg" alt="myRadio Music Server" width="720" height="">
