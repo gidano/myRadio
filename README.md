@@ -96,6 +96,6 @@ A nyelv fordításkor választható, a <b>Lovyan_config.h</b> fájlban.
   <li>..folyt. köv.</li>
 </ul>
 
-.. hogy legyen mivel androidról irányítani: <a href="https://github.com/gidano/YoRadio-Controller">YoRadio-Controller</a>
-.. hogy egyszerűen, PC-n szerkeszd az állomás listát (stations.txt): <a href="https://github.com/gidano/myRadio-Editor">myRadio Editor</a>
-.. hogy PC-ről streamelt zenét is tudj hallgatni a rádión: <a href="https://github.com/gidano/myRadio-Music-Server">myRadio Music Server</a>
+.. hogy legyen mivel androidról irányítani: <a href="https://github.com/gidano/YoRadio-Controller">**YoRadio Controller**</a><br>
+.. hogy egyszerűen, PC-n szerkeszd az állomás listát (stations.txt): <a href="https://github.com/gidano/myRadio-Editor">**myRadio Editor**</a><br>
+.. hogy PC-ről streamelt zenét is tudj hallgatni a rádión: <a href="https://github.com/gidano/myRadio-Music-Server">**myRadio Music Server**</a>
