@@ -175,3 +175,9 @@ by gidano
 ⭐ Support the Project
 
 If you like the project, consider giving it a ⭐ on GitHub.
+
+<p align="left">
+.. so that you can control it from an Android device: <a href="https://github.com/gidano/YoRadio-Controller">**YoRadio Controller**</a><br>
+.. so you can easily edit the station list on your PC (stations.txt): <a href="https://github.com/gidano/myRadio-Editor">**myRadio Editor**</a><br>
+.. so you can listen to music streamed from your PC on the radio: <a href="https://github.com/gidano/myRadio-Music-Server">**myRadio Music Server**</a>
+</p>
