@@ -22,8 +22,7 @@ A nyelv fordításkor választható, a <b>Lovyan_config.h</b> fájlban.
 </p>
 
 <p align="center">
-  Támogatás nélküli tesztüzemre, lelkes amatőrök számára.
-</p>
+  Támogatás nélküli tesztüzemre.
 
 <p align="center">
   <img src="https://github.com/gidano/myRadio/blob/main/images/myradiologo_240.png" alt="myRadio logo 320x240" width="320" height="240"><br>
