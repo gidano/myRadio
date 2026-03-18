@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/github/repo-size/gidano/myRadio?style=for-the-badge" alt="Repo size">
 </p>
 
-<p align="center">
+<p align="left">
   ESP32S3 alapú, saját szoftverre épülő webrádió projekt<br>
   ESP32S3-based web radio project built on custom software<br>
   <strong style="color: #e74c3c;">!!! Fejlesztési szakaszban lévő projekt !!!</strong><br>
