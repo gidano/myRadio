@@ -141,7 +141,9 @@ void ui_stationSelectorDraw() {
   const bool useSprite = ensureMenuSprite();
   if (useSprite) {
     drawTo(g_ctx.sprMenu);
-    int yOff=*g_ctx.menuListTop; if(g_ctx.tft && g_ctx.tft->height()==240) yOff-=*g_ctx.menuItemH; g_ctx.sprMenu->pushSprite(0, yOff);
+    int yOff = *g_ctx.menuListTop;
+    if (g_ctx.tft && g_ctx.tft->height() == 240) yOff -= *g_ctx.menuItemH;
+    g_ctx.sprMenu->pushSprite(0, yOff);
   } else {
     drawTo(g_ctx.tft);
   }
