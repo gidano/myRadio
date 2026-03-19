@@ -9,8 +9,8 @@
 // KIJELZŐ VÁLASZTÁS (CSAK egyet válassz)
 //====================================================
 
-//#define ILI9488
-#define ST7789_XPT2046
+#define ILI9488
+//#define ST7789_XPT2046
 //#define ST7789
 //#define ILI9341
 //#define ST7796
