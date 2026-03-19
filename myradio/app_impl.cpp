@@ -46,6 +46,7 @@
 #include "src/hw/backlight.h"
 #include "src/input/input_encoder_isr.h"
 #include "src/input/input_button.h"
+#include "src/input/input_touch.h"
 #include "src/myradiologo_240.h"
 
 // VU meter hooks (audio_process_i2s -> vu_feedStereoISR)
@@ -78,7 +79,10 @@ bool app_isMenuMode();
 void app_exitMenuRedrawPlayUI();
 bool startPlaybackCurrent(bool allowReloadPlaylist);
 void drawStartupScreen(uint8_t phase);
-
+static void onButtonShortPress();
+static void onButtonLongPress();
+static void onTouchTap(int x, int y);
+static void onTouchLongPress(int x, int y);
 
 static SemaphoreHandle_t g_logMutex = nullptr;
 
@@ -201,6 +205,8 @@ static void onWiFiAttempt(const char* ssid, int index, int total) {
 
 LGFX tft;
 static bool g_tftReady = false;
+static bool g_touchEnabled = (TOUCH_MODEL != TOUCH_NONE);
+static InputTouchRuntimeState g_touchState;
 
 static void initDisplayBasic() {
   if (g_tftReady) return;
@@ -1362,8 +1368,126 @@ void my_audio_info(Audio::msg_t m) {
 // ------------------ Button ------------------ //
 static InputButtonState g_buttonState;
 static const uint32_t LONG_MS = 650;
+static int g_touchDragStartX = -1;
+static int g_touchDragStartY = -1;
+static int g_touchDragAnchorIndex = 0;
+
+
+static void touchAdjustVolume(int delta) {
+  if (delta == 0) return;
+  int newVol = g_Volume + delta;
+  if (newVol < VOLUME_MIN) newVol = VOLUME_MIN;
+  if (newVol > VOLUME_MAX) newVol = VOLUME_MAX;
+  if (newVol == g_Volume) return;
+  g_Volume = newVol;
+  stream_core_sendVolume(g_Volume);
+  updateVolumeOnly();
+}
+
+static bool touchIsInMenuOkZone(int y) {
+  return y >= (g_menuOkY - g_menuGap) && y <= (g_menuOkY + g_menuTextH + g_menuGap);
+}
+
+static int touchMenuVisualTop() {
+  int top = g_menuListTop;
+  if (W <= 320 && H <= 240 && g_menuItemH > 0) {
+    top -= g_menuItemH;
+  }
+  return top;
+}
+
+static bool touchIsInMenuListZone(int y) {
+  const int top = touchMenuVisualTop();
+  return y >= top && y < (top + g_menuListHeight);
+}
+
+static int touchMenuRowFromY(int y) {
+  if (!touchIsInMenuListZone(y) || g_menuItemH <= 0) return -1;
+  const int top = touchMenuVisualTop();
+  int row = (y - top) / g_menuItemH;
+  if (row < 0) row = 0;
+  if (row > 4) row = 4;
+  return row;
+}
+
+static void onTouchTap(int x, int y) {
+  g_touchDragStartX = -1;
+  g_touchDragStartY = -1;
+
+  if (g_mode == MODE_PLAY) {
+    const int volumeZoneW = max(56, W / 4);
+    const int volumeZoneX = W - volumeZoneW;
+    if (W > 0 && x >= volumeZoneX) {
+      if (y < (H / 2)) touchAdjustVolume(+1);
+      else             touchAdjustVolume(-1);
+      return;
+    }
+
+    togglePaused();
+    return;
+  }
+
+  if (g_mode != MODE_MENU) return;
+
+  if (touchIsInMenuOkZone(y)) {
+    exitMenuRedrawPlayUI();
+    return;
+  }
+
+  if (g_stationCount <= 0) return;
+
+  const int row = touchMenuRowFromY(y);
+  if (row < 0) return;
+
+  const int delta = row - 2;
+  if (delta == 0) {
+    onButtonShortPress();
+  } else {
+    ui_stationSelectorRotate(delta);
+    redrawMenuCounterAndList();
+  }
+}
+
+static void onTouchDrag(int startX, int startY, int x, int y) {
+  if (g_mode != MODE_MENU || g_stationCount <= 0) return;
+  if (!touchIsInMenuListZone(startY)) return;
+  if (x < 0 || y < 0) return;
+
+  const int dx = x - startX;
+  const int dy = y - startY;
+  if (abs(dy) < max(10, g_menuItemH / 4)) return;
+  if (abs(dx) > abs(dy)) return;
+
+  if (g_touchDragStartX != startX || g_touchDragStartY != startY) {
+    g_touchDragStartX = startX;
+    g_touchDragStartY = startY;
+    g_touchDragAnchorIndex = g_menuIndex;
+  }
+
+  const int stepPx = max(16, (g_menuItemH * 2) / 3);
+  const int steps = -dy / stepPx;
+  int target = g_touchDragAnchorIndex + steps;
+
+  while (target < 0) target += g_stationCount;
+  while (target >= g_stationCount) target -= g_stationCount;
+
+  if (target != g_menuIndex) {
+    g_menuIndex = target;
+    redrawMenuCounterAndList();
+  }
+}
+
+static void onTouchLongPress(int x, int y) {
+  (void)x; (void)y;
+  g_touchDragStartX = -1;
+  g_touchDragStartY = -1;
+  onButtonLongPress();
+}
 
 static void onButtonLongPress() {
+  g_touchDragStartX = -1;
+  g_touchDragStartY = -1;
+
   if (g_mode == MODE_PLAY) {
     g_mode = MODE_MENU;
     ui_stationSelectorBegin(g_currentIndex);
@@ -1724,7 +1848,8 @@ while (WiFi.status() != WL_CONNECTED) {
   vu_init();
   ui_drawVuMeter(0, 0, 0, 0);
 
-  audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT, I2S_MCLK);
+  if (I2S_MCLK >= 0) audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT, I2S_MCLK);
+  else               audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
 
   {
     StreamLifecyclePlaylistBind bind{};
@@ -1822,6 +1947,16 @@ void app_loop() {
   bctx.onShortPress = onButtonShortPress;
   bctx.onLongPress = onButtonLongPress;
   input_button_apply(bctx);
+
+  InputTouchCtx tctx;
+  tctx.enabled = &g_touchEnabled;
+  tctx.state = &g_touchState;
+  tctx.screenW = W;
+  tctx.screenH = H;
+  tctx.onTap = onTouchTap;
+  tctx.onLongPress = onTouchLongPress;
+  tctx.onDrag = onTouchDrag;
+  input_touch_apply(tctx);
 // Auto-advance playlist when the current track finishes
   if (g_autoNextRequested) {
     g_autoNextRequested = false;
