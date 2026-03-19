@@ -23,6 +23,7 @@ Mindig azt a változatot kell használni, amelyik a kiválasztott partíciós s�
 
 A `SPIFFS_xxx` fájl feltölthető például:
 
+- [ESPConnect](https://thelastoutpostworkshop.github.io/ESPConnect/)
 - [esptool](https://github.com/espressif/esptool)
 - [ESP32 Flash Download Tool](https://www.espressif.com/en/support/download/other-tools)
 
@@ -69,6 +70,7 @@ You must always use the version that matches the selected partition scheme and t
 
 The `SPIFFS_xxx` file can be uploaded using, for example:
 
+- [ESPConnect](https://thelastoutpostworkshop.github.io/ESPConnect/)
 - [esptool](https://github.com/espressif/esptool)
 - [ESP32 Flash Download Tool](https://www.espressif.com/en/support/download/other-tools)
 
