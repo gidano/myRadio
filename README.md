@@ -47,6 +47,7 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 - ESP32-S3 Supermini N4R2
 - ESP32-S3 N16R8
 - ST7789, ILI9341 320x240
+- CYD 2.8" ST7789_XPT2046 hozzáadott PSRAM chip-pel / with added PSRAM chip
 - ST7796, ILI9488 480x320
 - DAC 5102A, vagy / or CJMCU CS4344
 - EC11 vagy / or KY-040 rotary encoder
