@@ -65,6 +65,7 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 - LovyanGFX by lovyan03 v1.2.19
 - ESP32-audioI2S-master by schreibfaul1 v3.4.5
 - Adafruit ST7735 and ST7789 Library by Adafruit v1.11.0
+- PaulStoffregen/XPT2046_Touchscreen library
 - A GitHub buxtronix/Arduino kódtárból a Rotary könyvtárt be kell helyezni a `..\Dokumentumok\Arduino\libraries` mappába / The Rotary library from the GitHub buxtronix/Arduino repository must be placed in the `..\Documents\Arduino\libraries` folder: [Rotary könyvtár / Rotary library](https://github.com/buxtronix/arduino/tree/master/libraries/Rotary)
 
 ---
