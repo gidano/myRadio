@@ -1,4 +1,4 @@
-## SPIFFS image feltöltése
+## SPIFFS image feltöltése (HU/EN)
 
 A projekt mellé előre elkészített `SPIFFS_xxx` fájlok is tartoznak, így nem szükséges a `./data/` mappa tartalmát kézzel, egyesével feltölteni.
 
