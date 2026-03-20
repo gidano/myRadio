@@ -1,0 +1,68 @@
+Touch preview changes:
+- New board profile in Lovyan_config.h: MYRADIO_BOARD_CYD_28_ST7789_XPT2046
+- New input module: src/input/input_touch.h/.cpp
+- Uses PaulStoffregen/XPT2046_Touchscreen library
+- Default touch pins for CYD profile:
+  TOUCH_SCLK = 25
+  TOUCH_MISO = 39
+  TOUCH_MOSI = 32
+  TOUCH_CS   = 33
+
+Preview touch actions:
+- Play screen tap: pause/play
+- Play screen long press: open/close station menu
+- Play screen bottom left/right: volume - / +
+- Play screen top-left 64x64 area: open menu
+- Menu tap on upper/lower rows: move selection
+- Menu tap on middle row: select station
+- Menu tap on OK line: close menu
+
+Likely needs calibration fine-tuning in Lovyan_config.h:
+- TOUCH_CAL_X_MIN / MAX
+- TOUCH_CAL_Y_MIN / MAX
+- TOUCH_SWAP_XY / TOUCH_INVERT_X / TOUCH_INVERT_Y
+
+
+2026-03-19 hotfix:
+- CYD PCM5102 pinout corrected to DOUT=27, LRC=22, BCLK=4
+- 3-wire audio.setPinout() is used automatically when I2S_MCLK=-1
+- XPT2046 uses configurable SPIClass and prints raw touch data to Serial
+- touch Z threshold reduced to 80 for easier first bring-up
+
+
+Hotfix: menu drag now remains active after the long-press that opens the menu.
+
+
+Változások az érintőképernyős előnézetben:
+- Új táblaprofil a Lovyan_config.h fájlban: MYRADIO_BOARD_CYD_28_ST7789_XPT2046
+- Új bemeneti modul: src/input/input_touch.h/.cpp
+- A PaulStoffregen/XPT2046_Touchscreen könyvtárat használja
+- Alapértelmezett érintőképernyős csatlakozók a CYD profilhoz:
+  TOUCH_SCLK = 25
+  TOUCH_MISO = 39
+  TOUCH_MOSI = 32
+  TOUCH_CS   = 33
+
+Érintéses műveletek előnézete:
+- Lejátszási képernyő megérintése: szünet/lejátszás
+- Lejátszási képernyő hosszan tartó megnyomása: állomásmenü megnyitása/bezárása
+- Lejátszási képernyő bal alsó/jobb alsó sarka: hangerő - / +
+- Lejátszási képernyő bal felső 64x64-es területe: menü megnyitása
+- Menü érintése a felső/alsó sorokban: a kijelölés mozgatása
+- Menü érintése a középső sorban: állomás kiválasztása
+- Menü érintése az OK sorban: menü bezárása
+
+Valószínűleg finomhangolásra van szükség a Lovyan_config.h fájlban:
+- TOUCH_CAL_X_MIN / MAX
+- TOUCH_CAL_Y_MIN / MAX
+- TOUCH_SWAP_XY / TOUCH_INVERT_X / TOUCH_INVERT_Y
+
+
+2026-03-19 javítás:
+- A CYD PCM5102 pin-kiosztás javítva: DOUT=27, LRC=22, BCLK=4
+- 3-vezetékes audio.setPinout() automatikusan használatba kerül, ha I2S_MCLK=-1
+- Az XPT2046 konfigurálható SPIClass-t használ, és a nyers érintési adatokat a soros porthoz továbbítja
+- Az érintés Z küszöbértéke 80-ra csökkent az egyszerűbb első beüzemelés érdekében
+
+
+Javítás: a menü húzása mostantól aktív marad a menüt megnyitó hosszú nyomás után is.
