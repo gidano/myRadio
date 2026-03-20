@@ -74,7 +74,7 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 ## Üzembe helyezés / Setup
 
 - Készíthetsz egy `wifi.txt` nevű állományt / Create a file named `wifi.txt`
-- Írd be a használni kívánt SSID/jelszó páros(oka)t (max. 5) és töltsd fel a [leírás szerint / according to the instructions](https://github.com/gidano/myRadio/blob/main/binary%20files/SPIFSS%20upload.md)
+- Írd be a használni kívánt SSID/jelszó páros(oka)t (max. 5) és töltsd fel a [leírás szerint / according to the instructions]()
 
 ---
 
@@ -113,3 +113,4 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 .. hogy PC-ről streamelt zenét is tudj hallgatni a rádión / .. to listen to music streamed from your PC on the radio:
 <a href="https://github.com/gidano/myRadio-Music-Server"><b>myRadio Music Server</b></a>
 </p>
+ 
