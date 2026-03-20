@@ -1,3 +1,4 @@
+**EN**
 Touch preview changes:
 - New board profile in Lovyan_config.h: MYRADIO_BOARD_CYD_28_ST7789_XPT2046
 - New input module: src/input/input_touch.h/.cpp
@@ -32,7 +33,7 @@ Likely needs calibration fine-tuning in Lovyan_config.h:
 
 Hotfix: menu drag now remains active after the long-press that opens the menu.
 
-
+**HU**
 Változások az érintőképernyős előnézetben:
 - Új táblaprofil a Lovyan_config.h fájlban: MYRADIO_BOARD_CYD_28_ST7789_XPT2046
 - Új bemeneti modul: src/input/input_touch.h/.cpp
