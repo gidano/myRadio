@@ -73,7 +73,7 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 
 ## Üzembe helyezés / Setup
 
-- Készíts egy `wifi.txt` nevű állományt / Create a file named `wifi.txt`
+- Készíthetsz egy `wifi.txt` nevű állományt / Create a file named `wifi.txt`
 - Írd be a használni kívánt SSID/jelszó páros(oka)t (max. 5) és töltsd fel a [leírás szerint / according to the instructions](https://github.com/gidano/myRadio/blob/main/binary%20files/SPIFSS%20upload.md)
 
 ---
