@@ -1,7 +1,7 @@
 #include "backlight.h"
 #include "../../Lovyan_config.h"
 
-uint8_t g_brightness = 255;
+uint8_t g_brightness = 128;
 
 void hw_backlight_init_pwm() {
   pinMode(TFT_BL, OUTPUT);
