@@ -63,5 +63,5 @@ void ui_updateVuMeterOnly(int lvlL, int lvlR, int peakL, int peakR);
 // Érvényteleníti a VU cache-t, így a következő rajzoláskor a keret is újraépül.
 void ui_invalidateVuMeter();
 
-// Header + right-top logo (static UI)
-void ui_drawHeaderAndLogo(const String& header, int yHeader, int codecIconW, int logoW);
+// Header + right-top TFT logo (static UI)
+void ui_drawHeaderAndLogo(const String& header, int yHeader, int codecIconW);

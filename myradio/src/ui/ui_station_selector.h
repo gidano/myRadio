@@ -1,17 +1,23 @@
 #pragma once
 #include <Arduino.h>
-#include <LovyanGFX.hpp>
+#include "../../Lovyan_config.h"
 #include "../core/station_store.h"
 
 struct UIStationSelectorCtx {
+  #if defined(SSD1322)
+  oledgfx::LGFX_Device* tft = nullptr;
+  oledgfx::LGFX_Sprite* sprMenu = nullptr;
+  #else
   lgfx::LGFX_Device* tft = nullptr;
   lgfx::LGFX_Sprite* sprMenu = nullptr;
+  #endif
 
   Station* stations = nullptr;
   int* stationCount = nullptr;
   int* menuIndex = nullptr;
 
   int* screenW = nullptr;
+  int* screenH = nullptr;
   int* menuListTop = nullptr;
   int* menuListHeight = nullptr;
   int* menuItemH = nullptr;

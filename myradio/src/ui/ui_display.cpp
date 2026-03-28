@@ -1,14 +1,18 @@
 #include "ui_display.h"
 #include "ui_bottom_bar.h"
-#include "logo_rgb565_60x60.h"
+#if !defined(SSD1322)
+#include "../../logo_rgb565_60x60.h"
+#endif
 
 static UIDisplayCtx C;
 
+#if !defined(SSD1322)
 static void vu_area(int& x, int& y, int& w, int& h);
 static inline int clamp100_i(int v){ if (v < 0) return 0; if (v > 100) return 100; return v; }
 static void draw_vu_boombox_static();
 static void draw_vu_boombox_dynamic(int lvlL, int lvlR, int peakL, int peakR);
 static void draw_vu_boombox(int lvlL, int lvlR, int peakL, int peakR);
+#endif
 
 static bool ok() {
   return (C.tft && C.W && C.H &&
@@ -18,35 +22,32 @@ static bool ok() {
 }
 
 static void clearRect(int x, int y, int w, int h) {
-  if (!ok()) return;
+  if (!ok() || w <= 0 || h <= 0) return;
   C.tft->fillRect(x, y, w, h, TFT_BLACK);
 }
+
+#if defined(SSD1322)
+template <typename T>
+static void applyDisplayFont(T& dev, const String* fontPath) {
+  if (fontPath && fontPath->length()) dev.loadFont(fontPath->c_str());
+  else dev.setFont((const GFXfont*)nullptr);
+  dev.setTextSize(1);
+  dev.setTextWrap(false);
+}
+#endif
 
 void ui_display_bind(const UIDisplayCtx& ctx) {
   C = ctx;
   ui_bottom_bar_bind(ctx);
 }
 
-void ui_drawWifiIcon(bool connected) {
-  ui_bottom_bar_drawWifiIcon(connected);
-}
+void ui_drawWifiIcon(bool connected) { ui_bottom_bar_drawWifiIcon(connected); }
+void ui_updateWifiIconOnly() { ui_bottom_bar_updateWifiIconOnly(); }
+void ui_drawBufferIndicator(int percent) { ui_bottom_bar_drawBufferIndicator(percent); }
+void ui_updateBufferIndicatorOnly(int percent) { ui_bottom_bar_updateBufferIndicatorOnly(percent); }
+void ui_drawBottomBar(int volume, int bufferPercent, bool wifiConnected) { ui_bottom_bar_drawBottomBar(volume, bufferPercent, wifiConnected); }
 
-void ui_updateWifiIconOnly() {
-  ui_bottom_bar_updateWifiIconOnly();
-}
-
-void ui_drawBufferIndicator(int percent) {
-  ui_bottom_bar_drawBufferIndicator(percent);
-}
-
-void ui_updateBufferIndicatorOnly(int percent) {
-  ui_bottom_bar_updateBufferIndicatorOnly(percent);
-}
-
-void ui_drawBottomBar(int volume, int bufferPercent, bool wifiConnected) {
-  ui_bottom_bar_drawBottomBar(volume, bufferPercent, wifiConnected);
-}
-
+#if !defined(SSD1322)
 static void vu_area(int& x, int& y, int& w, int& h) {
   const int bufW = 40;
   const int gap = 10;
@@ -101,20 +102,36 @@ struct VuBoomGeom {
   bool valid=false;
 };
 static VuBoomGeom g_vu;
+#endif
 
 int ui_display_bottomBaseline() {
+#if defined(SSD1322)
+  return (C.H && *C.H > 0) ? (*C.H - 1) : 0;
+#else
   if (g_vu.valid) {
     int b = g_vu.y + g_vu.h - 2;
     return (b > 0) ? b : 0;
   }
   return (*C.H) ? (*C.H - 1) : 0;
+#endif
 }
 
 int ui_display_miniPufWidth() {
+#if defined(SSD1322)
+  return 12;
+#else
   return 14;
+#endif
 }
 
 void ui_display_drawMiniPuf(int x, int yTop, uint16_t col) {
+  if (!C.tft) return;
+#if defined(SSD1322)
+  for (int i = 0; i < 6; ++i) {
+    int h = (i % 2 == 0) ? 4 : 6;
+    C.tft->fillRect(x + i * 2, yTop + (6 - h), 1, h, col);
+  }
+#else
   auto vline = [&](int xx, int yy, int hh){ C.tft->drawFastVLine(xx, yy, hh, col); };
   auto hline = [&](int xx, int yy, int ww){ C.tft->drawFastHLine(xx, yy, ww, col); };
   int x0 = x;
@@ -135,8 +152,10 @@ void ui_display_drawMiniPuf(int x, int yTop, uint16_t col) {
   vline(x0,     yTop, 6);
   hline(x0,     yTop, 4);
   hline(x0,     yTop+2, 3);
+#endif
 }
 
+#if !defined(SSD1322)
 static void draw_vu_boombox_static() {
   int x, y, w, h;
   vu_area(x, y, w, h);
@@ -155,7 +174,7 @@ static void draw_vu_boombox_static() {
   clearRect(x, y, w, h);
 
   int rr = max(3, (4 * s100) / 100);
-  C.tft->drawRoundRect(x, y, w, h, rr, TFT_DARKGRAY);
+  C.tft->drawRoundRect(x, y, w, h, rr, TFT_WHITE);
 
   const int pad = max(2, (3 * s100) / 100);
   const int speakerPad = max(6, (10 * s100) / 100);
@@ -165,10 +184,10 @@ static void draw_vu_boombox_static() {
   int spLX = x + pad + speakerPad;
   int spRX = x + w - pad - speakerPad;
 
-  C.tft->drawCircle(spLX, cy, speakerR, TFT_DARKGRAY);
-  C.tft->fillCircle(spLX, cy, 1, TFT_DARKGRAY);
-  C.tft->drawCircle(spRX, cy, speakerR, TFT_DARKGRAY);
-  C.tft->fillCircle(spRX, cy, 1, TFT_DARKGRAY);
+  C.tft->drawCircle(spLX, cy, speakerR, TFT_WHITE);
+  C.tft->fillCircle(spLX, cy, 1, TFT_WHITE);
+  C.tft->drawCircle(spRX, cy, speakerR, TFT_WHITE);
+  C.tft->fillCircle(spRX, cy, 1, TFT_WHITE);
 
   int innerGap = max(4, (6 * s100) / 100);
   int innerX = spLX + speakerR + innerGap;
@@ -183,22 +202,22 @@ static void draw_vu_boombox_static() {
   int totalBarsH = g_vu.barH + g_vu.barGap + g_vu.barH;
   int y0 = y + (h - totalBarsH) / 2;
 
-  C.tft->drawRect(innerX - 1, y0 - 2, innerW + 2, totalBarsH + 4, TFT_DARKGRAY);
+  C.tft->drawRect(innerX - 1, y0 - 2, innerW + 2, totalBarsH + 4, TFT_WHITE);
 
   auto drawLabel = [&](int yy, char c) {
     int lx = innerX + 1;
     int ly = yy - 1;
     if (c == 'L') {
-      C.tft->drawFastVLine(lx, ly, 6, TFT_LIGHTGRAY);
-      C.tft->drawFastHLine(lx, ly + 5, 4, TFT_LIGHTGRAY);
+      C.tft->drawFastVLine(lx, ly, 6, TFT_WHITE);
+      C.tft->drawFastHLine(lx, ly + 5, 4, TFT_WHITE);
     } else {
-      C.tft->drawFastVLine(lx, ly, 6, TFT_LIGHTGRAY);
-      C.tft->drawFastHLine(lx, ly, 4, TFT_LIGHTGRAY);
-      C.tft->drawFastHLine(lx, ly + 2, 4, TFT_LIGHTGRAY);
-      C.tft->drawFastHLine(lx, ly + 5, 4, TFT_LIGHTGRAY);
-      C.tft->drawPixel(lx + 3, ly + 3, TFT_LIGHTGRAY);
-      C.tft->drawPixel(lx + 4, ly + 4, TFT_LIGHTGRAY);
-      C.tft->drawPixel(lx + 5, ly + 5, TFT_LIGHTGRAY);
+      C.tft->drawFastVLine(lx, ly, 6, TFT_WHITE);
+      C.tft->drawFastHLine(lx, ly, 4, TFT_WHITE);
+      C.tft->drawFastHLine(lx, ly + 2, 4, TFT_WHITE);
+      C.tft->drawFastHLine(lx, ly + 5, 4, TFT_WHITE);
+      C.tft->drawPixel(lx + 3, ly + 3, TFT_WHITE);
+      C.tft->drawPixel(lx + 4, ly + 4, TFT_WHITE);
+      C.tft->drawPixel(lx + 5, ly + 5, TFT_WHITE);
     }
   };
   drawLabel(y0, 'L');
@@ -258,13 +277,21 @@ static void draw_vu_boombox(int lvlL, int lvlR, int peakL, int peakR) {
   draw_vu_boombox_static();
   draw_vu_boombox_dynamic(lvlL, lvlR, peakL, peakR);
 }
+#endif
 
 void ui_drawVuMeter(int lvlL, int lvlR, int peakL, int peakR) {
+#if defined(SSD1322)
+  (void)lvlL; (void)lvlR; (void)peakL; (void)peakR;
+#else
   if (!ok()) return;
   draw_vu_boombox(lvlL, lvlR, peakL, peakR);
+#endif
 }
 
 void ui_updateVuMeterOnly(int lvlL, int lvlR, int peakL, int peakR) {
+#if defined(SSD1322)
+  (void)lvlL; (void)lvlR; (void)peakL; (void)peakR;
+#else
   if (!ok()) return;
   static int lastL = -999, lastR = -999, lastPL = -999, lastPR = -999;
   if (lastL != -999 && abs(lvlL - lastL) <= 1 && abs(lvlR - lastR) <= 1 &&
@@ -273,25 +300,83 @@ void ui_updateVuMeterOnly(int lvlL, int lvlR, int peakL, int peakR) {
   }
   lastL = lvlL; lastR = lvlR; lastPL = peakL; lastPR = peakR;
   draw_vu_boombox(lvlL, lvlR, peakL, peakR);
+#endif
 }
 
 void ui_invalidateVuMeter() {
+#if !defined(SSD1322)
   g_vu.valid = false;
+#endif
 }
 
-void ui_drawHeaderAndLogo(const String& header, int yHeader, int codecIconW, int logoW) {
+static void ui_drawTftLogoRebuilt() {
+#if defined(SSD1322)
+  return;
+#else
   if (!C.tft || !C.W) return;
+  constexpr int kLogoW = 60;
+  constexpr int kLogoH = 60;
+  constexpr int kPadRight = 4;
+  constexpr int kPadTop = 4;
+
+  const int logoX = *C.W - kLogoW - kPadRight;
+  const int logoY = kPadTop;
+
+  C.tft->fillRect(logoX, logoY, kLogoW, kLogoH, TFT_BLACK);
+
+  uint16_t line[kLogoW];
+  C.tft->startWrite();
+  C.tft->setAddrWindow(logoX, logoY, kLogoW, kLogoH);
+  for (int row = 0; row < kLogoH; ++row) {
+    const int base = row * kLogoW;
+    for (int col = 0; col < kLogoW; ++col) {
+      line[col] = pgm_read_word(&logo_rgb565_60x60[base + col]);
+    }
+    C.tft->pushPixels(line, kLogoW, true);
+  }
+  C.tft->endWrite();
+#endif
+}
+
+void ui_drawHeaderAndLogo(const String& header, int yHeader, int codecIconW) {
+  if (!C.tft || !C.W || !C.H) return;
+
+#if defined(SSD1322)
+  applyDisplayFont(*C.tft, C.FP_SB_20);
+  C.tft->setTextColor(TFT_WHITE, TFT_BLACK);
+  const int textH = C.tft->fontHeight();
+  const int leftEdge = codecIconW > 0 ? (codecIconW + 6) : 0;
+  const int rightEdge = *C.W;
+  const int clearW = rightEdge - leftEdge;
+  if (clearW > 0) C.tft->fillRect(leftEdge, yHeader, clearW, textH + 4, TFT_BLACK);
+  int drawX = leftEdge;
+  int headerW = C.tft->textWidth(header.c_str());
+  if (clearW > headerW) drawX = leftEdge + ((clearW - headerW) / 2);
+  if (drawX < leftEdge) drawX = leftEdge;
+  C.tft->setCursor(drawX, yHeader + textH);
+  C.tft->print(header);
+#else
   const int W = *C.W;
-  drawLogo60x60(*C.tft, W - logoW - 4, 4);
+  constexpr int kLogoW = 60;
+  constexpr int kLogoPadRight = 4;
+  constexpr int kTextPad = 4;
+
+  ui_drawTftLogoRebuilt();
 
   int tw = C.tft->textWidth(header.c_str());
   int leftBound  = 4 + codecIconW + 4;
-  int rightBound = W - (logoW + 4) - 4;
+  int rightBound = W - kLogoW - kLogoPadRight - kTextPad;
   int x = (W - tw) / 2;
   if (x < leftBound) x = leftBound;
   if (x + tw > rightBound) x = rightBound - tw;
   if (x < leftBound) x = leftBound;
 
+  const int textClearX = leftBound;
+  const int textClearW = rightBound - leftBound;
+  const int textH = C.tft->fontHeight();
+  if (textClearW > 0) C.tft->fillRect(textClearX, yHeader, textClearW, textH + 2, TFT_BLACK);
+
   C.tft->setCursor(x, yHeader);
   C.tft->print(header);
+#endif
 }

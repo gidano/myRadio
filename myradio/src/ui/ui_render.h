@@ -1,6 +1,6 @@
 #pragma once
 #include <Arduino.h>
-#include <LovyanGFX.hpp>
+#include "../../Lovyan_config.h"
 
 // App-side setup ctx (az app_impl.cpp ezt használja: UIRenderCtx uctx; ...)
 struct UIRenderCtx {
@@ -8,9 +8,15 @@ struct UIRenderCtx {
   String* artist      = nullptr;
   String* title       = nullptr;
 
+  #if defined(SSD1322)
+  oledgfx::LGFX_Sprite* sprStation = nullptr;
+  oledgfx::LGFX_Sprite* sprArtist  = nullptr;
+  oledgfx::LGFX_Sprite* sprTitle   = nullptr;
+  #else
   lgfx::LGFX_Sprite* sprStation = nullptr;
   lgfx::LGFX_Sprite* sprArtist  = nullptr;
   lgfx::LGFX_Sprite* sprTitle   = nullptr;
+  #endif
 
   int* yStationName = nullptr;
   int* yArtist      = nullptr;

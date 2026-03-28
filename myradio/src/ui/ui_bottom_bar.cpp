@@ -2,7 +2,9 @@
 #include "audio_icons/icon_speaker_24.h"
 #include "ui_station_selector.h"
 
+#if !defined(SSD1322)
 #include <WiFi.h>
+#endif
 
 static UIDisplayCtx C;
 
@@ -14,14 +16,13 @@ static bool ok() {
 }
 
 static void clearRect(int x, int y, int w, int h) {
-  if (!ok()) return;
+  if (!ok() || w <= 0 || h <= 0) return;
   C.tft->fillRect(x, y, w, h, TFT_BLACK);
 }
 
-void ui_bottom_bar_bind(const UIDisplayCtx& ctx) {
-  C = ctx;
-}
+void ui_bottom_bar_bind(const UIDisplayCtx& ctx) { C = ctx; }
 
+#if !defined(SSD1322)
 static int wifiBarsFromRSSI(int rssi) {
   if (rssi <= -90) return 0;
   if (rssi <= -80) return 1;
@@ -30,9 +31,52 @@ static int wifiBarsFromRSSI(int rssi) {
   return 4;
 }
 
+static void ui_drawVolumeOnly(int volume) {
+  if (ui_stationSelectorActive() || !ok()) return;
+
+  if (volume < 0) volume = 0;
+  if (volume > 100) volume = 100;
+
+  C.tft->loadFont(C.FP_20->c_str());
+  int h20 = C.tft->fontHeight() + 2;
+
+  const int iconW = 24;
+  const int iconH = 24;
+  const int gap = 6;
+
+  String volStr = String(volume < 10 ? "0" : "") + String(volume);
+  C.tft->loadFont(C.FP_SB_20->c_str());
+  int valueW = C.tft->textWidth(volStr.c_str());
+
+  int iconX = 0;
+  const int baseline = ui_display_bottomBaseline();
+  int iconY = baseline - iconH;
+  if (iconY < 0) iconY = 0;
+
+  int valueX = iconX + iconW + gap;
+
+  int clearX = 0;
+  int clearY = (iconY - 2 < 0) ? 0 : (iconY - 2);
+  int clearH = (h20 > iconH ? h20 : iconH) + 4;
+  int clearW = valueX + valueW + 6;
+  clearRect(clearX, clearY, clearW, clearH);
+
+  C.tft->pushImage(iconX, iconY, iconW, iconH, icon_speaker_24);
+
+  C.tft->loadFont(C.FP_SB_20->c_str());
+  C.tft->setTextColor(TFT_WHITE, TFT_BLACK);
+  int valueY = baseline - (C.tft->fontHeight());
+  if (valueY < 0) valueY = 0;
+  C.tft->setCursor(valueX, valueY);
+  C.tft->print(volStr);
+}
+#endif
+
 void ui_bottom_bar_drawWifiIcon(bool connected) {
-  if (ui_stationSelectorActive()) return;
-  if (!ok()) return;
+#if defined(SSD1322)
+  (void)connected;
+#else
+  if (ui_stationSelectorActive() || !ok()) return;
 
   clearRect(*C.wifiX, *C.wifiY, *C.wifiW, *C.wifiH);
 
@@ -55,14 +99,16 @@ void ui_bottom_bar_drawWifiIcon(bool connected) {
     int h = 4 + i * 3;
     int x = baseX + i * (barW + gap);
     int y = baseY - h;
-    uint16_t col = (i < bars) ? TFT_GREEN : TFT_DARKGRAY;
+    uint16_t col = (i < bars) ? TFT_GREEN : TFT_WHITE;
     C.tft->fillRect(x, y, barW, h, col);
   }
+#endif
 }
 
 void ui_bottom_bar_updateWifiIconOnly() {
-  if (ui_stationSelectorActive()) return;
-  if (!ok()) return;
+#if defined(SSD1322)
+#else
+  if (ui_stationSelectorActive() || !ok()) return;
 
   static int lastConnected = -1;
   static int lastBars = -1;
@@ -107,14 +153,17 @@ void ui_bottom_bar_updateWifiIconOnly() {
     int h = 4 + i * 3;
     int x = baseX + i * (barW + gap);
     int y = baseY - h;
-    uint16_t col = (i < bars) ? TFT_GREEN : TFT_DARKGRAY;
+    uint16_t col = (i < bars) ? TFT_GREEN : TFT_WHITE;
     C.tft->fillRect(x, y, barW, h, col);
   }
+#endif
 }
 
 void ui_bottom_bar_drawBufferIndicator(int percent) {
-  if (ui_stationSelectorActive()) return;
-  if (!ok()) return;
+#if defined(SSD1322)
+  (void)percent;
+#else
+  if (ui_stationSelectorActive() || !ok()) return;
   if (percent < 0) percent = 0;
   if (percent > 100) percent = 100;
 
@@ -143,11 +192,14 @@ void ui_bottom_bar_drawBufferIndicator(int percent) {
   int pY = baseline - 6 - UI_DISPLAY_PUF_RAISE_PX;
   C.tft->fillRect(pX, pY, pW, 6, TFT_BLACK);
   ui_display_drawMiniPuf(pX, pY, TFT_WHITE);
+#endif
 }
 
 void ui_bottom_bar_updateBufferIndicatorOnly(int percent) {
-  if (ui_stationSelectorActive()) return;
-  if (!ok()) return;
+#if defined(SSD1322)
+  (void)percent;
+#else
+  if (ui_stationSelectorActive() || !ok()) return;
   if (percent < 0) percent = 0;
   if (percent > 100) percent = 100;
 
@@ -166,60 +218,25 @@ void ui_bottom_bar_updateBufferIndicatorOnly(int percent) {
   int pX = bufX - pW - 3;
   if (pX < 0) pX = 0;
 
+  const int pY = baseline - 6 - UI_DISPLAY_PUF_RAISE_PX;
   int clearX = pX;
-  int clearY = bufY - 6;
+  int clearY = (pY < bufY) ? pY : bufY;
   int clearW = (bufX + bufW) - clearX + 2;
-  int clearH = bufH + 12;
+  int clearBottom = ((pY + 6) > (bufY + bufH)) ? (pY + 6) : (bufY + bufH);
+  int clearH = clearBottom - clearY;
   if (clearW < 0) clearW = 0;
+  if (clearH < 0) clearH = 0;
 
   clearRect(clearX, clearY, clearW, clearH);
   ui_bottom_bar_drawBufferIndicator(percent);
-}
-
-static void ui_drawVolumeOnly(int volume) {
-  if (ui_stationSelectorActive()) return;
-  if (!ok()) return;
-
-  if (volume < 0) volume = 0;
-  if (volume > 100) volume = 100;
-
-  C.tft->loadFont(C.FP_20->c_str());
-  int h20 = C.tft->fontHeight() + 2;
-
-  const int iconW = 24;
-  const int iconH = 24;
-  const int gap = 4;
-
-  String volStr = String(volume < 10 ? "0" : "") + String(volume);
-  C.tft->loadFont(C.FP_SB_20->c_str());
-  int valueW = C.tft->textWidth(volStr.c_str());
-
-  int iconX = 0;
-  const int baseline = ui_display_bottomBaseline();
-  int iconY = baseline - iconH;
-  if (iconY < 0) iconY = 0;
-
-  int valueX = iconX + iconW + gap;
-
-  int clearX = 0;
-  int clearY = (iconY - 2 < 0) ? 0 : (iconY - 2);
-  int clearH = (h20 > iconH ? h20 : iconH) + 4;
-  int clearW = valueX + valueW + 6;
-  clearRect(clearX, clearY, clearW, clearH);
-
-  C.tft->pushImage(iconX, iconY, iconW, iconH, icon_speaker_24);
-
-  C.tft->loadFont(C.FP_SB_20->c_str());
-  C.tft->setTextColor(TFT_GREEN, TFT_BLACK);
-  int valueY = baseline - (C.tft->fontHeight());
-  if (valueY < 0) valueY = 0;
-  C.tft->setCursor(valueX, valueY);
-  C.tft->print(volStr);
+#endif
 }
 
 void ui_bottom_bar_drawBottomBar(int volume, int bufferPercent, bool wifiConnected) {
-  if (ui_stationSelectorActive()) return;
-  if (!ok()) return;
+#if defined(SSD1322)
+  (void)volume; (void)bufferPercent; (void)wifiConnected;
+#else
+  if (ui_stationSelectorActive() || !ok()) return;
 
   ui_drawVolumeOnly(volume);
 
@@ -232,4 +249,5 @@ void ui_bottom_bar_drawBottomBar(int volume, int bufferPercent, bool wifiConnect
   ui_bottom_bar_drawWifiIcon(wifiConnected);
 
   C.tft->loadFont(C.FP_20->c_str());
+#endif
 }
