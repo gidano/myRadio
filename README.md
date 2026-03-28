@@ -113,7 +113,7 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 .. hogy egyszerűen, PC-n szerkeszd az állomás listát (stations.txt) / .. to easily edit the station list (stations.txt) on PC:
 <a href="https://github.com/gidano/myRadio-Editor"><b>myRadio Editor</b></a><br>
 .. hogy PC-ről streamelt zenét is tudj hallgatni a rádión / .. to listen to music streamed from your PC on the radio:
-<a href="https://github.com/gidano/myRadio-Music-Server"><b>myRadio Music Server</b></a>
+<a href="https://github.com/gidano/myRadio-Music-Server"><b>myRadio Music Server</b></a><br>
 .. hogy PC-n, egyszerűen kezelhesd az SPIFFS-en tárolt mappákat-fájlokat / .. so you can easily manage the folders and files stored on SPIFFS from your PC:
 <a href="link hamarosan..."><b>myRadio SPIFFS Manager</b></a>
 </p>
