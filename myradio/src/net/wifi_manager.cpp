@@ -1,5 +1,6 @@
 #include "wifi_manager.h"
 #include "../lang/lang.h"
+#include "../maint/serial_spiffs.h"
 
 #include <WiFi.h>
 #include <WebServer.h>
@@ -307,6 +308,13 @@ static void startWiFiConfigPortal() {
   server.begin();
 
   while (true) {
+    serial_spiffs_poll();
+    if (serial_spiffs_is_active()) {
+      server.stop();
+      WiFi.softAPdisconnect(true);
+      Serial.println("[MRSPIFS] WiFi config portal overridden by serial maintenance");
+      return;
+    }
     server.handleClient();
     delay(2);
   }
