@@ -115,6 +115,6 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 .. hogy PC-ről streamelt zenét is tudj hallgatni a rádión / .. to listen to music streamed from your PC on the radio:
 <a href="https://github.com/gidano/myRadio-Music-Server"><b>myRadio Music Server</b></a><br>
 .. hogy PC-n kezelhesd az SPIFFS adatait / .. so you can manage your SPIFFS data on a PC:
-<a href="(https://github.com/gidano/myRadio-SPIFFS-Manager)"><b>myRadio SPIFFS Manager</b></a>
+<a href="https://github.com/gidano/myRadio-SPIFFS-Manager"><b>myRadio SPIFFS Manager</b></a>
 </p>
  
