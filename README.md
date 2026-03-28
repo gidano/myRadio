@@ -40,7 +40,6 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
   <img src="https://raw.githubusercontent.com/gidano/myRadio/main/images/myRadio_480x320px.jpg" alt="myRadio 480x320" width="480" height="320"><br>
   <img src="https://github.com/gidano/myRadio/blob/main/images/myRadio_SSD1322_OLED.jpg" alt="myRadio 256x64" width="280" height="74"><br>
 </p>
-https://github.com/gidano/myRadio/blob/main/images/myRadio_SSD1322_OLED.jpg?raw=true
 ---
 
 ## A használt hardver elemek / Hardware components
@@ -50,6 +49,7 @@ https://github.com/gidano/myRadio/blob/main/images/myRadio_SSD1322_OLED.jpg?raw=
 - ST7789, ILI9341 320x240
 - CYD 2.8" ST7789_XPT2046 hozzáadott PSRAM chip-pel / with added PSRAM chip
 - ST7796, ILI9488 480x320
+- SSD1322 3,12" 256x64 OLED
 - DAC 5102A, vagy / or CJMCU CS4344
 - EC11 vagy / or KY-040 rotary encoder
 
@@ -102,6 +102,7 @@ https://github.com/gidano/myRadio/blob/main/images/myRadio_SSD1322_OLED.jpg?raw=
 - Beépítésre került a yoRadio-hoz készült "Mirosław B. • Radio-Browser API" az állomások kereséséhez és mentéséhez / The "Mirosław B. • Radio-Browser API" originally made for yoRadio has been integrated for station search and saving
 - Elkészült hozzá egy állomás lista kezelő szoftver, amely beolvassa/konvertálja a yoRadio-féle playlist.csv fájlt Yoradio-ról és PC-ről is. Bővebb info a kezdőlap "tools" mappában / A station list manager application has been created that reads/converts the yoRadio-style playlist.csv file from both yoRadio and PC. More info in the "tools" folder of the repository
 - myRadio Music Server - Egy könnyen használható Windows alkalmazás, amely a számítógépedet zenei streaming szerverré alakítja ESP32 alapú (myRadio, yoRadio) webrádiók számára. / myRadio Music Server — An easy-to-use Windows application that turns your computer into a music streaming server for ESP32-based (myRadio, yoRadio) web radios.
+- myRadio SPIFFS Manager - a myRadio SPIFFS tárhely kezeléséhez HU/EN nyelven, PC-n, soros porton keresztül / For managing the myRadio SPIFFS storage in Hungarian and English, on a PC via a serial port
 - ..folyt. köv. / ..to be continued
 
 ---
@@ -113,5 +114,7 @@ https://github.com/gidano/myRadio/blob/main/images/myRadio_SSD1322_OLED.jpg?raw=
 <a href="https://github.com/gidano/myRadio-Editor"><b>myRadio Editor</b></a><br>
 .. hogy PC-ről streamelt zenét is tudj hallgatni a rádión / .. to listen to music streamed from your PC on the radio:
 <a href="https://github.com/gidano/myRadio-Music-Server"><b>myRadio Music Server</b></a>
+.. hogy PC-n, egyszerűen kezelhesd az SPIFFS-en tárolt mappákat-fájlokat / .. so you can easily manage the folders and files stored on SPIFFS from your PC:
+<a href="link hamarosan..."><b>myRadio SPIFFS Manager</b></a>
 </p>
  
