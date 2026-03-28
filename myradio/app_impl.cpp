@@ -4,6 +4,7 @@
 #include "src/net/net_server.h"
 #include <esp_wifi.h>
 #include <WebServer.h>
+#include "src/maint/serial_spiffs.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <vector>
@@ -15,17 +16,26 @@
 #include "Audio.h"
 
 #include "Lovyan_config.h"
-#include <LovyanGFX.hpp>
 #include "conf/display_profile.h"
 #include <SPIFFS.h>
 #include "Rotary.h"
-#include "logo_rgb565_60x60.h"
+#if defined(SSD1322)
+#include "myradio_logo_20x20.h"
+#include "audio_icons/aac_20.h"
+#include "audio_icons/flac_20.h"
+#include "audio_icons/mp3_20.h"
+#include "audio_icons/ogg_20.h"
+#include "audio_icons/opus_20.h"
+#include "audio_icons/vor_20.h"
+#include "audio_icons/icon_speaker_12.h"
+#else
 #include "audio_icons/aac_60.h"
 #include "audio_icons/flac_60.h"
 #include "audio_icons/mp3_60.h"
 #include "audio_icons/ogg_60.h"
 #include "audio_icons/opus_60.h"
 #include "audio_icons/vor_60.h"
+#endif
 #include "src/input/input_encoder.h"
 #include "src/input/input_rotary.h"
 #include "src/core/state_meta.h"
@@ -47,22 +57,44 @@
 #include "src/input/input_encoder_isr.h"
 #include "src/input/input_button.h"
 #include "src/input/input_touch.h"
+#if defined(SSD1322)
+#include "src/myradiologo_oled_200.h"
+#else
 #include "src/myradiologo_240.h"
+#endif
 
 // VU meter hooks (audio_process_i2s -> vu_feedStereoISR)
 #include "src/ui/vu_meter.h"
+#if defined(SSD1322)
+#include "src/hw/ssd1322/ssd1322_debug_ui.h"
+#endif
+
 #include "src/lang/lang.h"
 
 
 // Fallback színek, ha a platform nem definiálná ezeket a neveket
-#ifndef TFT_LIGHTGREY
-  #define TFT_LIGHTGREY 0xC618
+#ifndef TFT_WHITE
+  #define TFT_WHITE 0xC618
 #endif
-#ifndef TFT_DARKGREY
-  #define TFT_DARKGREY  0x7BEF
+#ifndef TFT_WHITE
+  #define TFT_WHITE  0x7BEF
+#endif
+static constexpr uint16_t OLED_MUTED_GREY = 0x2104;
+static constexpr uint16_t OLED_DARKER_GREY = 0x1082;
+#if defined(SSD1322)
+static const uint8_t OLED_MUTED_GREY_4BPP = oledgfx::ssd1322_gray4_from_rgb565(OLED_MUTED_GREY);
 #endif
 
+#if defined(SSD1322)
+using LGFX_Sprite = oledgfx::LGFX_Sprite;
+using LGFX_Device = oledgfx::LGFX_Device;
+using oledgfx::top_left;
+using oledgfx::top_right;
+using oledgfx::middle_center;
+#else
 using LGFX_Sprite = lgfx::LGFX_Sprite;
+using LGFX_Device = lgfx::LGFX_Device;
+#endif
 
 // ------------------ Forward declarations (needed because some helpers are static) ------------------
 void saveLastStationToNVS();
@@ -75,6 +107,12 @@ static void serialLogf(const char* fmt, ...);
 static void serialLogln(const String& s);
 static void serialLogln(const char* s);
 static String clipTextKeepRight(LGFX_Device* dev, const String& s, int maxW);
+template <typename T>
+static void applyFontPath(T& dev, const String* fp);
+static String* uiRegularFontPtr(int preferredSize);
+static String* uiSemiboldFontPtr(int preferredSize);
+static const String& uiRegularFont(int preferredSize);
+static const String& uiSemiboldFont(int preferredSize);
 bool app_isMenuMode();
 void app_exitMenuRedrawPlayUI();
 bool startPlaybackCurrent(bool allowReloadPlaylist);
@@ -83,6 +121,15 @@ static void onButtonShortPress();
 static void onButtonLongPress();
 static void onTouchTap(int x, int y);
 static void onTouchLongPress(int x, int y);
+void drawBottomBar();
+static void drawOledIpLine();
+#if defined(SSD1322)
+static void oledUpdateVolumeOnly();
+
+static void oledInvalidateVuMeter();
+static void oledDrawVuMeter(uint8_t lvlL, uint8_t lvlR, uint8_t peakL, uint8_t peakR);
+static void oledUpdateVuMeterOnly(uint8_t lvlL, uint8_t lvlR, uint8_t peakL, uint8_t peakR);
+#endif
 
 static SemaphoreHandle_t g_logMutex = nullptr;
 
@@ -204,6 +251,44 @@ static void onWiFiAttempt(const char* ssid, int index, int total) {
 }
 
 LGFX tft;
+#if defined(SSD1322)
+static void drawGray4Bitmap(int x, int y, int w, int h, const uint8_t* data) {
+  if (!data) return;
+  int i = 0;
+  for (int yy = 0; yy < h; ++yy) {
+    for (int xx = 0; xx < w; xx += 2) {
+      const uint8_t b = data[i++];
+      const uint8_t p1 = (b >> 4) & 0x0F;
+      const uint8_t p2 = b & 0x0F;
+      tft.Jamis_SSD1322::drawPixel(x + xx, y + yy, p1);
+      if (xx + 1 < w) tft.Jamis_SSD1322::drawPixel(x + xx + 1, y + yy, p2);
+    }
+  }
+  tft.display();
+}
+#endif
+
+#if defined(SSD1322)
+static inline uint8_t rgb565ToGray4(uint16_t c) {
+  uint8_t r = (c >> 11) & 0x1F;
+  uint8_t g = (c >> 5) & 0x3F;
+  uint8_t b = c & 0x1F;
+  uint16_t gray8 = (r * 255 / 31 * 30 + g * 255 / 63 * 59 + b * 255 / 31 * 11) / 100;
+  return (uint8_t)(gray8 >> 4);
+}
+
+static void drawGrayFromRgb565Bitmap(int x, int y, int w, int h, const uint16_t* data) {
+  if (!data) return;
+  for (int yy = 0; yy < h; ++yy) {
+    for (int xx = 0; xx < w; ++xx) {
+      uint8_t g4 = rgb565ToGray4(data[yy * w + xx]);
+      if (g4) tft.Jamis_SSD1322::drawPixel(x + xx, y + yy, g4);
+    }
+  }
+  tft.display();
+}
+#endif
+
 static bool g_tftReady = false;
 static bool g_touchEnabled = (TOUCH_MODEL != TOUCH_NONE);
 static InputTouchRuntimeState g_touchState;
@@ -215,31 +300,75 @@ static void initDisplayBasic() {
   tft.setRotation(TFT_ROTATION);      // a Lovyan_config.h-ban állítod be
   tft.setBrightness(255);
   tft.fillScreen(TFT_BLACK);
+#if defined(SSD1322)
+  ssd1322_draw_debug_boot(tft);
+#endif
   g_tftReady = true;
 }
 
 static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   initDisplayBasic();
-
-  // Fekete háttér + fehér keretes "ablak"
   tft.fillScreen(TFT_BLACK);
+
+#if defined(SSD1322)
+  const bool compactOledWifiSetup = (tft.width() == 256 && tft.height() == 64);
+  if (compactOledWifiSetup) {
+    const int pad = 3;
+    const int radius = 6;
+    const int innerL = pad + 5;
+    const int innerR = tft.width() - pad - 5;
+    const int innerW = innerR - innerL + 1;
+    tft.drawRoundRect(pad, pad, tft.width() - pad * 2, tft.height() - pad * 2, radius, TFT_WHITE);
+
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+
+    { String fp = uiSemiboldFont(8); applyFontPath(tft, &fp); }
+    int y = 0;
+    String title = lang::wifi_setup_about_title;
+    int titleW = tft.textWidth(title.c_str());
+    int titleX = innerL;
+    if (titleW < innerW) titleX = innerL + ((innerW - titleW) / 2);
+    tft.drawString(title, titleX, y);
+    y += tft.fontHeight();
+
+    { String fp = uiRegularFont(9); applyFontPath(tft, &fp); }
+    const int lineH = tft.fontHeight();
+
+    auto clipToWidth = [&](const String& text, int maxW) -> String {
+      if (maxW <= 0) return String("");
+      if (tft.textWidth(text.c_str()) <= maxW) return text;
+      const char* dots = "...";
+      const int dotsW = tft.textWidth(dots);
+      if (dotsW >= maxW) return String("");
+      String out;
+      out.reserve(text.length());
+      for (size_t i = 0; i < text.length(); ++i) {
+        String trial = out + text[i];
+        if (tft.textWidth((trial + dots).c_str()) > maxW) break;
+        out += text[i];
+      }
+      return out + dots;
+    };
+
+    auto drawClippedLine = [&](const String& text, int yy) {
+      tft.drawString(clipToWidth(text, innerW), innerL, yy);
+    };
+
+    drawClippedLine(String(lang::wifi_setup_step1) + " " + String(apSsid ? apSsid : ""), y); y += lineH;
+    drawClippedLine(String(lang::wifi_setup_step2) + String(" http://") + ip.toString(), y); y += lineH;
+    drawClippedLine(String(lang::wifi_setup_step3), y); y += lineH;
+    drawClippedLine(String(lang::wifi_setup_save_hint) + " (" + String(lang::wifi_setup_restart_hint) + ")", y);
+    return;
+  }
+#endif
 
   const int pad = 8;
   const int w = tft.width()  - pad * 2;
   const int h = tft.height() - pad * 2;
   tft.drawRoundRect(pad, pad, w, h, 12, TFT_WHITE);
 
-  // Ha a 20-as VLW font hiányzik a SPIFFS-ből, visszaesünk 24-re.
-  const char* fs20    = "/fonts/test_20.vlw";
-  const char* fsSB20  = "/fonts/test_sb_20.vlw";
-  const char* fs24    = "/fonts/test_24.vlw";
-  const char* fsSB24  = "/fonts/test_sb_24.vlw";
-
-  const bool have20 = SPIFFS.exists(fs20) && SPIFFS.exists(fsSB20);
-
-  // LovyanGFX loadFont SPIFFS-hez általában /spiffs/... útvonalat vár.
-  const char* fontTitle = (have20 ? "/spiffs/fonts/test_sb_20.vlw" : "/spiffs/fonts/test_sb_24.vlw");
-  const char* fontBody  = (have20 ? "/spiffs/fonts/test_20.vlw"    : "/spiffs/fonts/test_24.vlw");
+  const String& fontTitle = uiSemiboldFont(UI_FONT_HEADER);
+  const String& fontBody  = uiRegularFont(UI_FONT_STREAM);
 
   const int x = pad + 10;
   int y = pad + 10;
@@ -248,17 +377,14 @@ static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   const int lineGap  = 1;
   const int blockGap = compactWifiSetup ? 1 : 3;
 
-  // Címsor: SemiBold 20
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.loadFont(fontTitle);
+  { String fp = fontTitle; applyFontPath(tft, &fp); }
   tft.setCursor(x + 60, y);
   tft.println(lang::wifi_setup_about_title);
   y += tft.fontHeight() + titleGap;
 
-  // Törzsszöveg: 20
-  tft.loadFont(fontBody);
+  { String fp = fontBody; applyFontPath(tft, &fp); }
 
-  // 1)
   tft.setCursor(x, y);
   tft.println(lang::wifi_setup_step1);
   y += tft.fontHeight() + lineGap;
@@ -267,7 +393,6 @@ static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   tft.println(apSsid);
   y += tft.fontHeight() + blockGap;
 
-  // 2)
   tft.setCursor(x, y);
   tft.println(lang::wifi_setup_step2);
   y += tft.fontHeight() + lineGap;
@@ -276,7 +401,6 @@ static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   tft.println(ip.toString());
   y += tft.fontHeight() + blockGap;
 
-  // 3)
   tft.setCursor(x, y);
   tft.println(lang::wifi_setup_step3);
   y += tft.fontHeight() + lineGap;
@@ -284,14 +408,8 @@ static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   tft.println(lang::wifi_setup_save_hint);
   y += tft.fontHeight() + blockGap;
 
-  // Footer
-  tft.setCursor(x, y);
   tft.setCursor(x + 68, y);
   tft.println(lang::wifi_setup_restart_hint);
-  y += tft.fontHeight() + lineGap;
-
-  // Ha nem kell tovább, vissza lehet később váltani másik fontra máshol.
-  // (Nem unloadFont-olunk, mert a UI is VLW-t használ.)
 }
 
 Audio audio;
@@ -311,12 +429,12 @@ LGFX_Sprite sprMenu(&tft);
 //  - /fonts/test_XX.vlw  (és /fonts/test_sb_XX.vlw)
 
 // SPIFFS útvonal (SPIFFS API-hoz: exists/open)
-static String FS_20, FS_24, FS_28;
-static String FS_SB_20, FS_SB_24, FS_SB_28;
+static String FS_9, FS_10, FS_12, FS_20, FS_24, FS_28;
+static String FS_SB_9, FS_SB_10, FS_SB_12, FS_SB_20, FS_SB_24, FS_SB_28;
 
 // LGFX útvonal (LGFX loadFont-hoz: /spiffs/...)
-static String FP_20, FP_24, FP_28;
-static String FP_SB_20, FP_SB_24, FP_SB_28;
+static String FP_9, FP_10, FP_12, FP_20, FP_24, FP_28;
+static String FP_SB_9, FP_SB_10, FP_SB_12, FP_SB_20, FP_SB_24, FP_SB_28;
 static String* uiRegularFontPtr(int preferredSize);
 static String* uiSemiboldFontPtr(int preferredSize);
 static const String& uiRegularFont(int preferredSize);
@@ -340,38 +458,55 @@ static String toLGFXPath(const String& fsPath) {
 
 static void initFontPaths() {
   // Regular
+  FS_9  = resolveFSPath("test_9.vlw");
+  FS_10 = resolveFSPath("test_10.vlw");
+  FS_12 = resolveFSPath("test_12.vlw");
   FS_20 = resolveFSPath("test_20.vlw");
   FS_24 = resolveFSPath("test_24.vlw");
   FS_28 = resolveFSPath("test_28.vlw");
 
   // SemiBold
+  FS_SB_9  = resolveFSPath("test_sb_9.vlw");
+  FS_SB_10 = resolveFSPath("test_sb_10.vlw");
+  FS_SB_12 = resolveFSPath("test_sb_12.vlw");
   FS_SB_20 = resolveFSPath("test_sb_20.vlw");
   FS_SB_24 = resolveFSPath("test_sb_24.vlw");
   FS_SB_28 = resolveFSPath("test_sb_28.vlw");
 
   // LGFX pathok
+  FP_9  = toLGFXPath(FS_9);
+  FP_10 = toLGFXPath(FS_10);
+  FP_12 = toLGFXPath(FS_12);
   FP_20 = toLGFXPath(FS_20);
   FP_24 = toLGFXPath(FS_24);
   FP_28 = toLGFXPath(FS_28);
 
+  FP_SB_9  = toLGFXPath(FS_SB_9);
+  FP_SB_10 = toLGFXPath(FS_SB_10);
+  FP_SB_12 = toLGFXPath(FS_SB_12);
   FP_SB_20 = toLGFXPath(FS_SB_20);
   FP_SB_24 = toLGFXPath(FS_SB_24);
   FP_SB_28 = toLGFXPath(FS_SB_28);
 
   Serial.println("[FONT] SPIFFS files:");
-  Serial.printf("  24: %s (%s)\n", FS_24.c_str(), SPIFFS.exists(FS_24) ? "OK" : "MISSING");
-  Serial.printf("  SB24: %s (%s)\n", FS_SB_24.c_str(), SPIFFS.exists(FS_SB_24) ? "OK" : "MISSING");
+  Serial.printf("  10: %s (%s)\n", FS_10.c_str(), SPIFFS.exists(FS_10) ? "OK" : "MISSING");
+  Serial.printf("  12: %s (%s)\n", FS_12.c_str(), SPIFFS.exists(FS_12) ? "OK" : "MISSING");
+  Serial.printf("  SB12: %s (%s)\n", FS_SB_12.c_str(), SPIFFS.exists(FS_SB_12) ? "OK" : "MISSING");
   Serial.println("[FONT] LGFX loadFont paths:");
-  Serial.printf("  24: %s\n", FP_24.c_str());
-  Serial.printf("  SB24: %s\n", FP_SB_24.c_str());
+  Serial.printf("  10: %s\n", FP_10.c_str());
+  Serial.printf("  12: %s\n", FP_12.c_str());
+  Serial.printf("  SB12: %s\n", FP_SB_12.c_str());
 }
 
 static String* pickAvailableFontPtr(
     int preferredSize,
-    String& fp20, String& fp24, String& fp28,
-    String& fs20, String& fs24, String& fs28) {
+    String& fp9, String& fp10, String& fp12, String& fp20, String& fp24, String& fp28,
+    String& fs9, String& fs10, String& fs12, String& fs20, String& fs24, String& fs28) {
   struct FontChoice { int size; String* fp; String* fs; };
   FontChoice choices[] = {
+    {9,  &fp9,  &fs9},
+    {10, &fp10, &fs10},
+    {12, &fp12, &fs12},
     {20, &fp20, &fs20},
     {24, &fp24, &fs24},
     {28, &fp28, &fs28},
@@ -398,21 +533,55 @@ static String* pickAvailableFontPtr(
   }
   if (best) return best;
 
-  return &fp24;
+  return &fp10;
 }
 
 static String* uiRegularFontPtr(int preferredSize) {
-  return pickAvailableFontPtr(preferredSize, FP_20, FP_24, FP_28,
-                              FS_20, FS_24, FS_28);
+  return pickAvailableFontPtr(preferredSize, FP_9, FP_10, FP_12, FP_20, FP_24, FP_28,
+                              FS_9, FS_10, FS_12, FS_20, FS_24, FS_28);
 }
 
 static String* uiSemiboldFontPtr(int preferredSize) {
-  return pickAvailableFontPtr(preferredSize, FP_SB_20, FP_SB_24, FP_SB_28,
-                              FS_SB_20, FS_SB_24, FS_SB_28);
+  return pickAvailableFontPtr(preferredSize, FP_SB_9, FP_SB_10, FP_SB_12, FP_SB_20, FP_SB_24, FP_SB_28,
+                              FS_SB_9, FS_SB_10, FS_SB_12, FS_SB_20, FS_SB_24, FS_SB_28);
 }
 
 static const String& uiRegularFont(int preferredSize)  { return *uiRegularFontPtr(preferredSize); }
 static const String& uiSemiboldFont(int preferredSize) { return *uiSemiboldFontPtr(preferredSize); }
+
+
+template <typename T>
+static void applyFontPath(T& dev, const String* fp) {
+#if defined(SSD1322)
+  if (fp && fp->length()) dev.loadFont(fp->c_str());
+  else dev.setFont((const GFXfont*)nullptr);
+#else
+  if (fp && fp->length()) dev.loadFont(fp->c_str());
+  else dev.unloadFont();
+#endif
+  dev.setTextSize(1);
+  dev.setTextWrap(false);
+}
+
+template <typename T>
+static void applyRegularUiFont(T& dev, int preferredSize) {
+  applyFontPath(dev, uiRegularFontPtr(preferredSize));
+}
+
+template <typename T>
+static void applySemiboldUiFont(T& dev, int preferredSize) {
+  applyFontPath(dev, uiSemiboldFontPtr(preferredSize));
+}
+
+template <typename T>
+static void applyStationUiFont(T& dev) {
+#if defined(SSD1322)
+  if (FS_SB_12.length() && SPIFFS.exists(FS_SB_12)) applyFontPath(dev, &FP_SB_12);
+  else applyFontPath(dev, uiSemiboldFontPtr(10));
+#else
+  applySemiboldUiFont(dev, UI_FONT_STATION);
+#endif
+}
 
 // ------------------ Encoding fix (UTF-8 / Latin-2) ------------------ //
 // ------------------ Station list ------------------ //
@@ -476,7 +645,20 @@ void saveLastStationToSPIFFS() {
   station_last_save_spiffs(g_stationUrl, g_stationName);
 }
 // ------------------ UI helpers ------------------ //
-static void clearRect(int x, int y, int w, int h) { tft.fillRect(x, y, w, h, TFT_BLACK); }
+static void clearRect(int x, int y, int w, int h) {
+#if defined(SSD1322)
+  const int BOTTOM_BAR_Y = 52;
+  if (w <= 0 || h <= 0) return;
+  if (ui_stationSelectorActive()) {
+    tft.fillRect(x, y, w, h, TFT_BLACK);
+    return;
+  }
+  if (y >= BOTTOM_BAR_Y) return;
+  if (y + h > BOTTOM_BAR_Y) h = BOTTOM_BAR_Y - y;
+  if (h <= 0) return;
+#endif
+  tft.fillRect(x, y, w, h, TFT_BLACK);
+}
 
 
 
@@ -501,20 +683,31 @@ int    g_pendingBitrateK = 0;
 
 enum UIMode { MODE_PLAY, MODE_MENU };
 static UIMode g_mode = MODE_PLAY;
-
-// ------------------ Codec ikon (60x60 RGB565) ------------------ //
-// Várjuk, hogy az ikon .h fájlokban *egyedi* tömbnevek legyenek.
-// Ha a Marlin konverter mindegyikben ugyanazt a nevet generálta (pl. image_data_60x60x16),
-// akkor nevezd át őket ezekre:
-//   image_data_aac_60x60x16, image_data_flac_60x60x16, image_data_mp3_60x60x16,
-//   image_data_ogg_60x60x16, image_data_vor_60x60x16, image_data_opus_60x60x16
+// ------------------ Codec ikon ------------------ //
+#if defined(SSD1322)
+#ifndef CODEC_ICON_W
+  #define CODEC_ICON_W 20
+#endif
+#ifndef CODEC_ICON_H
+  #define CODEC_ICON_H 20
+#endif
+static const uint8_t* codecIconPtrFromCodec(const String& codec) {
+  String u = codec; u.toUpperCase();
+  if (u.indexOf("FLAC") >= 0) return flac_20;
+  if (u.indexOf("OPUS") >= 0) return opus_20;
+  if (u.indexOf("VORBIS") >= 0) return vor_20;
+  if (u.indexOf("OGG") >= 0) return ogg_20;
+  if (u.indexOf("AAC") >= 0) return aac_20;
+  if (u.indexOf("MP3") >= 0) return mp3_20;
+  return nullptr;
+}
+#else
 #ifndef CODEC_ICON_W
   #define CODEC_ICON_W 60
 #endif
 #ifndef CODEC_ICON_H
   #define CODEC_ICON_H 60
 #endif
-
 static const uint16_t* codecIconPtrFromCodec(const String& codec) {
   String u = codec; u.toUpperCase();
   if (u.indexOf("FLAC") >= 0) return image_data_flac_60x60x16;
@@ -525,19 +718,23 @@ static const uint16_t* codecIconPtrFromCodec(const String& codec) {
   if (u.indexOf("MP3") >= 0) return image_data_mp3_60x60x16;
   return nullptr;
 }
+#endif
 
 static void drawCodecIconTopLeft() {
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
-  // Bal felső sarok: 4,4
-  const int x = 4;
-  const int y = 4;
+  const int x = 0;
+  const int y = 0;
   clearRect(x, y, CODEC_ICON_W, CODEC_ICON_H);
 
+#if defined(SSD1322)
+  const uint8_t* img = codecIconPtrFromCodec(g_codec);
+  if (!img) return;
+  drawGray4Bitmap(x, y, CODEC_ICON_W, CODEC_ICON_H, img);
+#else
   const uint16_t* img = codecIconPtrFromCodec(g_codec);
   if (!img) return;
-
-  // LovyanGFX: RGB565 képtömb kirajzolás
   tft.pushImage(x, y, CODEC_ICON_W, CODEC_ICON_H, img);
+#endif
 }
 
 // ---- Audio format (channels / sample rate / bit depth) ----
@@ -558,12 +755,20 @@ int g_bufferPercent = 0;
 // Keep these thin wrappers in app_impl to avoid modifying callback signatures.
 static void updateVolumeOnly() {
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
+#if defined(SSD1322)
+  oledUpdateVolumeOnly();
+#else
   ui_drawBottomBar(g_Volume, g_bufferPercent, (WiFi.status() == WL_CONNECTED));
+#endif
 }
 
 static void updateBufferIndicatorOnly() {
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
+#if defined(SSD1322)
+  drawBottomBar();
+#else
   ui_updateBufferIndicatorOnly(g_bufferPercent);
+#endif
 }
 static uint32_t lastBufferCheck = 0;
 
@@ -722,37 +927,65 @@ static int menuVisibleRows() {
 
 static void drawMenuListArea();
 
-static int textWidthMain(const String& s) { tft.loadFont(uiRegularFont(UI_FONT_TITLE).c_str()); return tft.textWidth(s.c_str()); }
+static int textWidthMain(const String& s) { applyStationUiFont(tft); return tft.textWidth(s.c_str()); }
 
 static void recomputeLayout() {
   W = tft.width();
   H = tft.height();
 
   // Header font
-  tft.loadFont(uiRegularFont(UI_FONT_HEADER).c_str());
+#if defined(SSD1322)
+  applySemiboldUiFont(tft, 12);
+#else
+  applySemiboldUiFont(tft, UI_FONT_HEADER);
+#endif
   int hHeader = tft.fontHeight();
   yHeader = UI_HEADER_Y;
 
   // Small label font
-  tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
+#if defined(SSD1322)
+  applyRegularUiFont(tft, 9);
+#else
+  applyRegularUiFont(tft, UI_FONT_LABEL);
+#endif
   int hLabel = tft.fontHeight();
 
   // Stream line font
-  tft.loadFont(uiRegularFont(UI_FONT_STREAM).c_str());
+#if defined(SSD1322)
+  applyRegularUiFont(tft, 9);
+#else
+  applyRegularUiFont(tft, UI_FONT_STREAM);
+#endif
   int hStream = tft.fontHeight();
 
   // Main text fonts / sprite heights
-  tft.loadFont(uiRegularFont(UI_FONT_ARTIST).c_str());
+#if defined(SSD1322)
+  applyRegularUiFont(tft, 9);
+#else
+  applySemiboldUiFont(tft, UI_FONT_ARTIST);
+#endif
   int hArtistText = tft.fontHeight();
   hArtistLine = hArtistText + UI_TEXT_LINE_EXTRA;
 
-  tft.loadFont(uiRegularFont(UI_FONT_TITLE).c_str());
+#if defined(SSD1322)
+  applyRegularUiFont(tft, 9);
+#else
+  applyRegularUiFont(tft, UI_FONT_TITLE);
+#endif
   int hTitleText = tft.fontHeight();
   hTitleLine  = hTitleText + UI_TEXT_LINE_EXTRA;
 
-  tft.loadFont(uiSemiboldFont(UI_FONT_STATION).c_str());
+applyStationUiFont(tft);
   int hStationText = tft.fontHeight();
   hStationLine = hStationText + UI_TEXT_LINE_EXTRA;
+
+#if defined(SSD1322)
+  // OLED: a VLW sorok tényleges magasságát vegyük figyelembe,
+  // különben a sorok egymásba törölnek vagy a karakterek alja levágódik.
+  hStationLine = max(hStationText + 2, 14);
+  hArtistLine  = max(hArtistText + 1, 10);
+  hTitleLine   = max(hTitleText + 1, 10);
+#endif
 
   // Layout positions
   yStationLabel = yHeader + hHeader + UI_GAP_AFTER_HEADER;
@@ -768,19 +1001,37 @@ static void recomputeLayout() {
   wifiW = UI_WIFI_W; wifiH = UI_WIFI_H;
   wifiX = W - wifiW - UI_WIFI_MARGIN;
   wifiY = H - wifiH - UI_WIFI_MARGIN;
+
+#if defined(SSD1322)
+  // OLED: fix sávos layout, de hagyjunk 1-2 px biztonsági rést a sorok között,
+  // hogy a részleges törlések ne nyúljanak bele a szomszédos sorokba.
+  yHeader = 0;
+  yStationLabel = 0;
+  yStationName = 2;
+  yStreamLabel = 19;
+  yArtist = 30;
+  yTitle = 41;
+  yVol = 53;
+  wifiW = 17; wifiH = 8;
+  wifiX = W - wifiW - 1;
+  wifiY = 53;
+#endif
 }
 
 //
 // ------------------ Sprites ------------------ //
 
-static void initSprites() {
+static int stationSpriteX();
+static int stationSpriteWidth();
+static int oledStationRowY();
+void initSprites() {
   const bool havePsram = psramFound();
 
   sprStation.setColorDepth(16);
   if (havePsram) sprStation.setPsram(true);
-  sprStation.createSprite(W, hStationLine);
+  sprStation.createSprite(stationSpriteWidth(), hStationLine);
   sprStation.fillScreen(TFT_BLACK);
-  sprStation.loadFont(uiSemiboldFont(UI_FONT_STATION).c_str());
+  applyStationUiFont(sprStation);
   sprStation.setTextWrap(false);
   sprStation.setTextColor(TFT_ORANGE, TFT_BLACK); // ÁLLOMÁS SZÍNE
 
@@ -788,7 +1039,11 @@ static void initSprites() {
   if (havePsram) sprArtist.setPsram(true);
   sprArtist.createSprite(W, hArtistLine);
   sprArtist.fillScreen(TFT_BLACK);
-  sprArtist.loadFont(uiSemiboldFont(UI_FONT_ARTIST).c_str());
+#if defined(SSD1322)
+  applySemiboldUiFont(sprArtist, 10);
+#else
+  applySemiboldUiFont(sprArtist, UI_FONT_ARTIST);
+#endif
   sprArtist.setTextWrap(false);
   sprArtist.setTextColor(TFT_CYAN, TFT_BLACK); // ELŐADÓ SZÍNE
 
@@ -796,15 +1051,28 @@ static void initSprites() {
   if (havePsram) sprTitle.setPsram(true);
   sprTitle.createSprite(W, hTitleLine);
   sprTitle.fillScreen(TFT_BLACK);
-  sprTitle.loadFont(uiSemiboldFont(UI_FONT_TITLE).c_str());
+#if defined(SSD1322)
+  applyRegularUiFont(sprTitle, 10);
+#else
+  applyRegularUiFont(sprTitle, UI_FONT_TITLE);
+#endif
   sprTitle.setTextWrap(false);
+#if defined(SSD1322)
+  sprTitle.setTextColor(OLED_MUTED_GREY, TFT_BLACK); // DAL CÍM SZÍNE (OLED: egységes szürke)
+#else
   sprTitle.setTextColor(TFT_SILVER, TFT_BLACK); // DAL CÍM SZÍNE
+#endif
 
   sprMenu.setColorDepth(16);
   if (havePsram) sprMenu.setPsram(true);
   sprMenu.createSprite(W, UI_MENU_H);
   sprMenu.fillScreen(TFT_BLACK);
-  sprMenu.loadFont(uiSemiboldFont(UI_FONT_MENU).c_str());
+#if defined(SSD1322)
+  applyRegularUiFont(sprMenu, 10);
+#else
+  applyRegularUiFont(sprMenu, UI_FONT_MENU);
+#endif
+  sprMenu.setTextWrap(false);
   sprMenu.setTextWrap(false);
   sprMenu.setTextColor(TFT_WHITE, TFT_BLACK);
 
@@ -846,10 +1114,12 @@ static String formatAudioInfoLine() {
 
 // ------------------ Bottom bar: Volume + buffer + WiFi ------------------ //
 void drawBottomBar() {
+#if defined(SSD1322)
+  // Az eredeti alsó 1 px-es puffercsík OLED-en megszűnt.
+  // A buffer kijelzés most a PUF blokkban történik az IP és a VU között.
+  return;
+#else
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
-  // Buffer % frissítés (500ms-enként), a tényleges rajzolás a ui_display modulban van
-  clearRect(wifiX - 80, yVol - 20, 120, 40);
-
   StreamWatchdogBufferCtx bctx{};
   bctx.stationUrl = &g_stationUrl;
   bctx.lastBufferCheckMs = &lastBufferCheck;
@@ -863,31 +1133,67 @@ void drawBottomBar() {
   stream_watchdog_updateBuffer(bctx);
 
   ui_drawBottomBar(g_Volume, g_bufferPercent, (WiFi.status() == WL_CONNECTED));
+#endif
 }
 
 
 // ------------------ UI ------------------ //
 static void drawStreamLabelLine() {
-  tft.loadFont(uiRegularFont(UI_FONT_STREAM).c_str()); // display-profile stream font
+#if defined(SSD1322)
+  applyRegularUiFont(tft, 9);
+#else
+  applyRegularUiFont(tft, UI_FONT_STREAM);
+#endif
   int th = tft.fontHeight();
-  int lineY = yStreamLabel - ((W <= 320) ? 8 : 0);
-  int lineH = th + 2;
+  int lineY = yStreamLabel;
+#if defined(SSD1322)
+  lineY -= 1;
+#endif
+  int lineH = th + 1;
 
-  // teljes sor frissítés (villogás nélkül)
-  clearRect(0, lineY - 4, W, lineH + 8);
+#if defined(SSD1322)
+  // OLED-en csak a stream sor saját sávját töröljük, így nem maradnak ott kosz karakterek,
+  // de az állomásnév alsó pixeleibe sem törlünk bele.
+  const int leftBound = CODEC_ICON_W + 1;
+  const int rightBound = W - MYRADIO_LOGO_20X20_W - 1;
+  // Csak a stream sor saját sávját töröljük.
+  if (rightBound > leftBound) clearRect(leftBound, lineY, rightBound - leftBound, lineH);
+#else
+  clearRect(0, lineY - 1, W, lineH + 2);
+#endif
 
-  // "Stream: 2ch | 44KHz | 16bit | 320k" középre igazítva
-  String line = text_fix(lang::ui_stream_prefix);
+  String line;
+#if defined(SSD1322)
+  line = String(g_ch > 0 ? String(g_ch) : String("--"));
+  line += "ch | ";
+  if (g_sampleRate > 0) line += String((g_sampleRate + 500) / 1000) + "kHz";
+  else line += "--kHz";
+  line += " | ";
+  if (g_bitsPerSample > 0) line += String(g_bitsPerSample) + "bit";
+  else line += "--bit";
+  if (g_bitrateK > 0) line += " | " + String(g_bitrateK) + "kb/s";
+#else
+  line = text_fix(lang::ui_stream_prefix);
   line += formatAudioInfoLine();
-  if (g_bitrateK > 0) {
-    line += " | " + formatRate(g_bitrateK);
-  }
+  if (g_bitrateK > 0) line += " | " + formatRate(g_bitrateK);
+#endif
 
+  #if defined(SSD1322)
+  tft.setTextColor(OLED_MUTED_GREY, TFT_BLACK);
+  int twLine = tft.textWidth(line.c_str());
+  int x = (twLine <= (rightBound - leftBound)) ? (leftBound + ((rightBound - leftBound) - twLine) / 2) : leftBound;
+  #else
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   int twLine = tft.textWidth(line.c_str());
   int x = (twLine <= W) ? (W - twLine) / 2 : 0;
+  #endif
+#if defined(SSD1322)
+  tft.setTextDatum(top_left);
+  tft.drawString(line, x, lineY);
+#else
   tft.setCursor(x, lineY);
   tft.print(line);
+#endif
 
   // Paused badge (jobb oldalon), ha kell
   if (!g_paused) return;
@@ -957,6 +1263,14 @@ static bool advancePlaylistAndPlay() {
   return playlist_runtime_advancePlaylistAndPlay(g_playlistMetaCtx);
 }
 
+static int oledStationRowY() {
+#if defined(SSD1322)
+  return yStationName - 1;
+#else
+  return yStationName;
+#endif
+}
+
 void updateStationNameUI() {
   // Ensure widths/centering are up to date for the current text
   recalcTextMetrics();
@@ -965,20 +1279,75 @@ void updateStationNameUI() {
   // If it's wider than the sprite, start at 0 (marquee handles scrolling elsewhere).
   if (sprStation.textWidth(g_stationName.c_str()) > (int)sprStation.width()) xS = 0;
   renderLine(sprStation, g_stationName, xS);
-  sprStation.pushSprite(0, yStationName);
+  #if defined(SSD1322)
+  sprStation.pushSprite(stationSpriteX(), oledStationRowY());
+#else
+  sprStation.pushSprite(0, oledStationRowY());
+#endif
 
   g_lastStationDrawn = g_stationName;
   g_lastStationX = xS;
 }
 
 static int spriteTextYOffset(const LGFX_Sprite& spr) {
+#if defined(SSD1322)
+  if (&spr == &sprStation) return 0;
+#endif
   return (&spr == &sprStation) ? 1 : 0;
 }
 
+static int oledArtistRowY() {
+#if defined(SSD1322)
+  return yArtist;
+#else
+  return yArtist;
+#endif
+}
+
+static int oledTitleRowY() {
+#if defined(SSD1322)
+  return yTitle + 2;
+#else
+  return yTitle;
+#endif
+}
+
+static int oledTitleClearY() {
+#if defined(SSD1322)
+  return yTitle - 4;
+#else
+  return (yTitle - 1);
+#endif
+}
+
+static int stationSpriteX() {
+#if defined(SSD1322)
+  return 18;
+#else
+  return 0;
+#endif
+}
+
+static int stationSpriteWidth() {
+#if defined(SSD1322)
+  return (W > 40 ? W - 40 : W);
+#else
+  return W;
+#endif
+}
+
+
 static void renderLine(LGFX_Sprite& spr, const String& text, int32_t x) {
   spr.fillScreen(TFT_BLACK);
+#if defined(SSD1322)
+  // OLED sprite + VLW: a custom kompatibilitási réteg drawString()-ban kezeli a VLW fontot.
+  // Sima print() esetén bitmap fallback jönne.
+  spr.setTextDatum(top_left);
+  spr.drawString(text, x, spriteTextYOffset(spr));
+#else
   spr.setCursor(x, spriteTextYOffset(spr));
   spr.print(text);
+#endif
 }
 
 // Seamless marquee: draw the same (already "text + sep") string twice back-to-back.
@@ -987,6 +1356,14 @@ static void renderMarqueeLine(LGFX_Sprite& spr, const String& marqueeText, int32
   spr.fillScreen(TFT_BLACK);
   const int y = spriteTextYOffset(spr);
 
+#if defined(SSD1322)
+  spr.setTextDatum(top_left);
+  // First copy
+  spr.drawString(marqueeText, x, y);
+
+  // Second copy immediately after the first (so there is always content coming in)
+  spr.drawString(marqueeText, x + wMarq, y);
+#else
   // First copy
   spr.setCursor(x, y);
   spr.print(marqueeText);
@@ -994,6 +1371,7 @@ static void renderMarqueeLine(LGFX_Sprite& spr, const String& marqueeText, int32
   // Second copy immediately after the first (so there is always content coming in)
   spr.setCursor(x + wMarq, y);
   spr.print(marqueeText);
+#endif
 }
 
 static int32_t calcCenterX(LGFX_Sprite& spr, const String& s) {
@@ -1005,33 +1383,449 @@ static int32_t calcCenterX(LGFX_Sprite& spr, const String& s) {
 }
 
 
+#if defined(SSD1322)
+static void drawOledWifiBarsDirect(int x, int y, int level) {
+  // OLED 4-bit grayscale direkt pixeles Wi-Fi ikon.
+  // x,y = bal felső sarok, 11x8 px terület.
+  if (level < 0) level = 0;
+  if (level > 4) level = 4;
+
+  const uint8_t offG = 0x4;
+  const uint8_t onG  = 0xD;
+  const int barW = 2;
+  const int gap  = 1;
+  const int heights[4] = {2, 4, 6, 8};
+  const int baseY = y + 7;
+
+  // Teljes ikon terület törlése.
+  for (int yy = 0; yy < 8; ++yy) {
+    for (int xx = 0; xx < 11; ++xx) {
+      tft.Jamis_SSD1322::drawPixel(x + xx, y + yy, 0x0);
+    }
+  }
+
+  for (int i = 0; i < 4; ++i) {
+    const uint8_t g = (i < level) ? onG : offG;
+    const int h = heights[i];
+    const int bx = x + i * (barW + gap);
+    const int by = baseY - h + 1;
+    for (int xx = 0; xx < barW; ++xx) {
+      for (int yy = 0; yy < h; ++yy) {
+        tft.Jamis_SSD1322::drawPixel(bx + xx, by + yy, g);
+      }
+    }
+  }
+}
+#endif
+
+
+#if defined(SSD1322)
+static int g_oledVuX = 0;
+static int g_oledVuY = 0;
+static int g_oledVuW = 0;
+static int g_oledVuH = 0;
+static int g_oledVuLabelX = 0;
+static int g_oledVuBarX = 0;
+static int g_oledPufX = 0;
+static int g_oledPufY = 0;
+static int g_oledPufLabelX = 0;
+static int g_oledPufBarX = 0;
+static int g_oledPufBarW = 0;
+static int g_oledPufBarH = 3;
+static int g_oledVuLastFillL = -1;
+static int g_oledVuLastFillR = -1;
+static int g_oledVuLastPeakL = -1;
+static int g_oledVuLastPeakR = -1;
+
+static void oledTinyDrawGlyph(char c, int x, int y, uint8_t onG = 15) {
+  static const uint8_t GL_L[5]   = {0b100,0b100,0b100,0b100,0b111};
+  static const uint8_t GL_R[5]   = {0b110,0b101,0b110,0b101,0b101};
+  static const uint8_t GL_P[5]   = {0b110,0b101,0b110,0b100,0b100};
+  static const uint8_t GL_U[5]   = {0b101,0b101,0b101,0b101,0b111};
+  static const uint8_t GL_F[5]   = {0b111,0b100,0b110,0b100,0b100};
+  static const uint8_t GL_V[5]   = {0b101,0b101,0b101,0b101,0b010};
+  const uint8_t* rows = nullptr;
+  switch (c) {
+    case 'L': rows = GL_L; break;
+    case 'R': rows = GL_R; break;
+    case 'P': rows = GL_P; break;
+    case 'U': rows = GL_U; break;
+    case 'F': rows = GL_F; break;
+    case 'V': rows = GL_V; break;
+    default: return;
+  }
+  for (int yy = 0; yy < 5; ++yy) {
+    const uint8_t row = rows[yy];
+    for (int xx = 0; xx < 3; ++xx) {
+      if (row & (1 << (2 - xx))) {
+        tft.Jamis_SSD1322::drawPixel(x + xx, y + yy, onG);
+      }
+    }
+  }
+}
+
+static void oledTinyDrawText(const char* text, int x, int y, uint8_t onG = 15, int gap = 1) {
+  if (!text) return;
+  int cx = x;
+  for (const char* p = text; *p; ++p) {
+    oledTinyDrawGlyph(*p, cx, y, onG);
+    cx += 3 + gap;
+  }
+}
+
+static inline int oledTinyTextWidth(const char* text, int gap = 1) {
+  if (!text || !*text) return 0;
+  int n = 0;
+  for (const char* p = text; *p; ++p) ++n;
+  return n * 3 + (n - 1) * gap;
+}
+
+static inline int oledVuClamp(int v, int lo, int hi) {
+  if (v < lo) return lo;
+  if (v > hi) return hi;
+  return v;
+}
+
+static void oledDrawPufIndicator(int percent) {
+  if (g_oledPufBarW <= 0 || g_oledPufBarH <= 0) return;
+
+  if (percent < 0) percent = 0;
+  if (percent > 100) percent = 100;
+
+  oledTinyDrawText("PUF", g_oledPufLabelX, g_oledPufY - 1, OLED_MUTED_GREY_4BPP, 1);
+
+  const uint8_t trackG = 6;
+  const uint8_t fillG  = 13;
+  const int fillW = map(percent, 0, 100, 0, g_oledPufBarW);
+
+  for (int x = 0; x < g_oledPufBarW; ++x) {
+    const uint8_t g = (x < fillW) ? fillG : trackG;
+    for (int y = 0; y < g_oledPufBarH; ++y) {
+      tft.Jamis_SSD1322::drawPixel(g_oledPufBarX + x, g_oledPufY + y, g);
+    }
+  }
+}
+
+static void oledVuComputeLayout(int rowTop, int wifiXLocal, int vuRightGap, int volRightX) {
+  (void)vuRightGap;
+  const int pufLabelW = oledTinyTextWidth("PUF", 1) + 2;
+  const int pufLabelGap = 2;
+  const int pufBarW = 20;
+  const int pufBlockW = pufLabelW + pufLabelGap + pufBarW;
+
+  const int labelW = oledTinyTextWidth("VU", 1);
+  const int labelGap = 2;
+  const int targetBarW = 34;
+  const int totalW = pufBlockW + 4 + labelW + labelGap + targetBarW;
+  const int vuRight = wifiXLocal - 5;
+  const int preferredX = vuRight - totalW;
+  const int minX = volRightX + 6;
+  const int baseX = (preferredX > minX) ? preferredX : minX;
+
+  g_oledPufLabelX = baseX;
+  g_oledPufBarX = g_oledPufLabelX + pufLabelW + pufLabelGap;
+  g_oledPufBarW = pufBarW;
+  g_oledPufY = rowTop + 4;
+  g_oledPufX = g_oledPufLabelX;
+
+  const int vuX = g_oledPufBarX + g_oledPufBarW + 4;
+  const int barX = vuX + labelW + labelGap;
+  const int barW = vuRight - barX;
+
+  g_oledVuX = vuX;
+  g_oledVuY = rowTop + 3;
+  g_oledVuLabelX = vuX;
+  g_oledVuBarX = barX;
+  g_oledVuW = (barW > 12) ? barW : 0;
+  g_oledVuH = 5;
+}
+
+static void oledClearVuArea() {
+  if (g_oledPufBarW > 0) {
+    const int pufW = (g_oledPufBarX + g_oledPufBarW) - g_oledPufX;
+    tft.fillRect(g_oledPufX, g_oledPufY - 2, pufW, g_oledPufBarH + 4, TFT_BLACK);
+  }
+  if (g_oledVuW <= 0 || g_oledVuH <= 0) return;
+  const int totalW = (g_oledVuBarX + g_oledVuW) - g_oledVuX;
+  tft.fillRect(g_oledVuX, g_oledVuY - 1, totalW, g_oledVuH + 2, TFT_BLACK);
+}
+
+static void oledDrawVuLabels() {
+  if (g_oledVuW <= 0) return;
+  const int x = g_oledVuLabelX;
+  oledTinyDrawText("VU", x, g_oledVuY, OLED_MUTED_GREY_4BPP, 1);
+}
+
+static void oledDrawVuTrackRow(int y) {
+  if (g_oledVuW <= 0) return;
+  const uint8_t trackG = 0x3;
+  for (int x = 0; x < g_oledVuW; ++x) {
+    tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + x, y, trackG);
+    tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + x, y + 1, trackG);
+  }
+}
+
+static void oledDrawVuBarRow(int y, int oldFillPx, int newFillPx, int oldPeakPx, int newPeakPx) {
+  if (g_oledVuW <= 0) return;
+  const uint8_t trackG = 0x3;
+  const uint8_t fillG  = 0xB;
+  const uint8_t peakG  = 0xF;
+
+  oldFillPx = oledVuClamp(oldFillPx, 0, g_oledVuW);
+  newFillPx = oledVuClamp(newFillPx, 0, g_oledVuW);
+  oldPeakPx = oledVuClamp(oldPeakPx, -1, g_oledVuW - 1);
+  newPeakPx = oledVuClamp(newPeakPx, -1, g_oledVuW - 1);
+
+  if (oldFillPx < newFillPx) {
+    for (int x = oldFillPx; x < newFillPx; ++x) {
+      tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + x, y, fillG);
+      tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + x, y + 1, fillG);
+    }
+  } else if (oldFillPx > newFillPx) {
+    for (int x = newFillPx; x < oldFillPx; ++x) {
+      tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + x, y, trackG);
+      tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + x, y + 1, trackG);
+    }
+  }
+
+  if (oldPeakPx >= 0 && oldPeakPx < g_oledVuW && oldPeakPx != newPeakPx) {
+    const uint8_t restoreG = (oldPeakPx < newFillPx) ? fillG : trackG;
+    tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + oldPeakPx, y, restoreG);
+    tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + oldPeakPx, y + 1, restoreG);
+  }
+
+  if (newPeakPx >= 0 && newPeakPx < g_oledVuW) {
+    tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + newPeakPx, y, peakG);
+    tft.Jamis_SSD1322::drawPixel(g_oledVuBarX + newPeakPx, y + 1, peakG);
+  }
+}
+
+static void oledInvalidateVuMeter() {
+  g_oledVuLastFillL = -1;
+  g_oledVuLastFillR = -1;
+  g_oledVuLastPeakL = -1;
+  g_oledVuLastPeakR = -1;
+}
+
+static void oledDrawVuMeter(uint8_t lvlL, uint8_t lvlR, uint8_t peakL, uint8_t peakR) {
+  if (g_oledVuW <= 0 || g_oledVuH <= 0) return;
+
+  const int fillL = map((int)lvlL, 0, 100, 0, g_oledVuW);
+  const int fillR = map((int)lvlR, 0, 100, 0, g_oledVuW);
+  const int holdL = oledVuClamp(map((int)peakL, 0, 100, 0, g_oledVuW - 1), -1, g_oledVuW - 1);
+  const int holdR = oledVuClamp(map((int)peakR, 0, 100, 0, g_oledVuW - 1), -1, g_oledVuW - 1);
+
+  oledClearVuArea();
+  oledDrawPufIndicator(g_bufferPercent);
+  oledDrawVuLabels();
+  oledDrawVuTrackRow(g_oledVuY);
+  oledDrawVuTrackRow(g_oledVuY + 3);
+  oledDrawVuBarRow(g_oledVuY, 0, fillL, -1, holdL);
+  oledDrawVuBarRow(g_oledVuY + 3, 0, fillR, -1, holdR);
+
+  g_oledVuLastFillL = fillL;
+  g_oledVuLastFillR = fillR;
+  g_oledVuLastPeakL = holdL;
+  g_oledVuLastPeakR = holdR;
+}
+
+static void oledUpdateVuMeterOnly(uint8_t lvlL, uint8_t lvlR, uint8_t peakL, uint8_t peakR) {
+  if (g_oledVuW <= 0 || g_oledVuH <= 0) return;
+
+  static int lastPufPercent = -1;
+  static uint32_t lastFlushMs = 0;
+  static bool pendingFlush = false;
+
+  const int fillL = map((int)lvlL, 0, 100, 0, g_oledVuW);
+  const int fillR = map((int)lvlR, 0, 100, 0, g_oledVuW);
+  const int holdL = oledVuClamp(map((int)peakL, 0, 100, 0, g_oledVuW - 1), -1, g_oledVuW - 1);
+  const int holdR = oledVuClamp(map((int)peakR, 0, 100, 0, g_oledVuW - 1), -1, g_oledVuW - 1);
+
+  if (lastPufPercent < 0 || abs(g_bufferPercent - lastPufPercent) >= 5) {
+    oledDrawPufIndicator(g_bufferPercent);
+    lastPufPercent = g_bufferPercent;
+    pendingFlush = true;
+  }
+
+  if (fillL != g_oledVuLastFillL || fillR != g_oledVuLastFillR || holdL != g_oledVuLastPeakL || holdR != g_oledVuLastPeakR) {
+    oledDrawVuBarRow(g_oledVuY,     g_oledVuLastFillL, fillL, g_oledVuLastPeakL, holdL);
+    oledDrawVuBarRow(g_oledVuY + 3, g_oledVuLastFillR, fillR, g_oledVuLastPeakR, holdR);
+
+    g_oledVuLastFillL = fillL;
+    g_oledVuLastFillR = fillR;
+    g_oledVuLastPeakL = holdL;
+    g_oledVuLastPeakR = holdR;
+    pendingFlush = true;
+  }
+
+  if (!pendingFlush) return;
+
+  const uint32_t now = millis();
+  if (now - lastFlushMs < 110) return;
+
+  tft.display();
+  lastFlushMs = now;
+  pendingFlush = false;
+}
+#endif
+
+
+#if defined(SSD1322)
+static inline int oledBottomBarRowTop() {
+  // A downbar alsó pozícióját a hangerő ikon (12 px magas, rowTop-1-re rajzolva)
+  // alsó pixeléhez igazítjuk. Így a hangszóró ikon legalja pont a kijelző legaljára kerül.
+  // speakerY = rowTop - 1, speakerBottom = speakerY + (12 - 1) = rowTop + 10
+  // Finomhangolás alapján a komplett downbar 2 px-szel lejjebb kerül.
+  // A gyakorlatban ez adta a helyes vizuális legalja-pozíciót.
+  return H - 9;
+}
+#endif
+
+static void oledUpdateVolumeOnly() {
+#if defined(SSD1322)
+  const int rowTop = oledBottomBarRowTop();
+  const int rowH   = 9;
+
+  const String volText = String(g_Volume);
+
+  const int speakerW = 12;
+  const int speakerH = 12;
+  const int speakerX = 0;
+  const int speakerY = rowTop - 1;
+
+  const int volX = speakerX + speakerW + 4;
+
+  // Csak a bal oldali hangerő-blokkot töröljük és rajzoljuk újra.
+  // Hagyunk tartalékot 2 jegy + esetleges későbbi spacing miatt,
+  // így nem villog újra az IP / VU / Wi-Fi rész.
+  const int volumeRegionW = speakerW + 2 + 12;
+  tft.fillRect(0, rowTop, volumeRegionW, rowH, TFT_BLACK);
+
+  drawGrayFromRgb565Bitmap(speakerX, speakerY, speakerW, speakerH, icon_speaker_12);
+  applyRegularUiFont(tft, 10);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextDatum(top_left);
+  tft.drawString(volText, volX, rowTop + 1);
+  tft.display();
+#endif
+}
+
+static void drawOledIpLine() {
+#if defined(SSD1322)
+  const int rowTop = oledBottomBarRowTop();
+  const int rowH   = 9;           // 54..62
+
+  // Az OLED clearRect szándékosan nem törli az alsó sávot, ezért itt közvetlenül törlünk.
+  // A legalsó 1 px puffercsíkhoz nem nyúlunk.
+  tft.fillRect(0, rowTop, W, rowH, TFT_BLACK);
+
+  const String volText = String(g_Volume);
+  const String ipText  = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : String("-");
+
+  const int speakerW = 12;
+  const int speakerH = 12;
+  const int speakerX = 0;
+  const int speakerY = rowTop - 1;
+
+  // Számoljunk azzal is, hogy a hangerő kétjegyű lehet.
+  const int volX = speakerX + speakerW + 4;
+  applyRegularUiFont(tft, 10);
+  const int volW = tft.textWidth(volText.c_str());
+  const int volRightX = volX + volW;
+
+  const int ipGap = 10;
+  const int ipX = volRightX + ipGap;
+  applyRegularUiFont(tft, 9);
+  const int ipLabelW = tft.textWidth("IP:");
+  applyRegularUiFont(tft, 10);
+  const int ipW = tft.textWidth(ipText.c_str());
+
+  // Wi-Fi ikon fixen jobb szélen, a downbar-on belül.
+  const int wifiWLocal = 11;
+  const int wifiHLocal = 8;
+  const int wifiXLocal = W - wifiWLocal - 2;
+  const int wifiYLocal = rowTop + 1;
+
+  drawGrayFromRgb565Bitmap(speakerX, speakerY, speakerW, speakerH, icon_speaker_12);
+
+  applyRegularUiFont(tft, 10);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextDatum(top_left);
+  tft.drawString(volText, volX, rowTop + 1);
+
+  applyRegularUiFont(tft, 9);
+  tft.setTextColor(OLED_MUTED_GREY, TFT_BLACK);
+  tft.drawString("IP:", ipX, rowTop + 1);
+
+  applyRegularUiFont(tft, 10);
+  tft.setTextColor(OLED_MUTED_GREY, TFT_BLACK);
+  tft.drawString(ipText, ipX + ipLabelW + 2, rowTop + 1);
+
+  oledVuComputeLayout(rowTop, wifiXLocal, 3, ipX + ipLabelW + 2 + ipW);
+  oledDrawVuMeter(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+
+  int level = 0;
+  if (WiFi.status() == WL_CONNECTED) {
+    const int rssi = WiFi.RSSI();
+    if      (rssi >= -55) level = 4;
+    else if (rssi >= -67) level = 3;
+    else if (rssi >= -75) level = 2;
+    else if (rssi >= -85) level = 1;
+    else                  level = 0;
+  }
+
+  drawOledWifiBarsDirect(wifiXLocal, wifiYLocal, level);
+  tft.display();
+#endif
+}
+
 static void drawStaticUI() {
   tft.fillScreen(TFT_BLACK);
 
-  tft.loadFont(uiRegularFont(UI_FONT_HEADER).c_str());
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-
-  String header = text_fix("myRadio");
-
-// Codec ikon bal felső sarok
+#if defined(SSD1322)
+  // Top row: codec | station | logo
   drawCodecIconTopLeft();
+  drawGray4Bitmap(W - MYRADIO_LOGO_20X20_W, 0, MYRADIO_LOGO_20X20_W, MYRADIO_LOGO_20X20_H, myradio_logo_20x20);
 
-  // Fejléc + jobb felső LOGO (UI modul)
-  ui_drawHeaderAndLogo(header, yHeader, CODEC_ICON_W, LOGO_W);
-  tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-int wS = sprStation.textWidth(g_stationName.c_str());
+  int wS = sprStation.textWidth(g_stationName.c_str());
   int xS = (wS <= (int)sprStation.width()) ? (((int)sprStation.width() - wS) / 2) : 0;
   renderLine(sprStation, g_stationName, xS);
-  sprStation.pushSprite(0, yStationName);
+  sprStation.pushSprite(stationSpriteX(), oledStationRowY());
+#else
+  tft.loadFont(uiRegularFont(UI_FONT_HEADER).c_str());
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  String header = text_fix("myRadio");
+  drawCodecIconTopLeft();
+  ui_drawHeaderAndLogo(header, yHeader, CODEC_ICON_W);
+
+  tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  int wS = sprStation.textWidth(g_stationName.c_str());
+  int xS = (wS <= (int)sprStation.width()) ? (((int)sprStation.width() - wS) / 2) : 0;
+  renderLine(sprStation, g_stationName, xS);
+  sprStation.pushSprite(0, oledStationRowY());
+#endif
 
   drawStreamLabelLine();
 
-  clearRect(0, yArtist, W, hArtistLine);
+  clearRect(0, oledArtistRowY(), W, hArtistLine);
+#if defined(SSD1322)
+  // Finomhangolás: a title sor törlése / sprite-ja 1 px-szel feljebb került,
+  // hogy ne vegyen el a downbar tetejéből.
+  clearRect(0, oledTitleClearY(), W, hTitleLine);
+#else
   clearRect(0, yTitle,  W, hTitleLine);
-  sprArtist.pushSprite(0, yArtist);
+#endif
+  sprArtist.pushSprite(0, oledArtistRowY());
+#if defined(SSD1322)
+  sprTitle.pushSprite(0, oledTitleRowY());
+#else
   sprTitle.pushSprite(0, yTitle);
+#endif
 
+#if defined(SSD1322)
+  drawOledIpLine();
+#endif
   drawBottomBar();
 }
 
@@ -1066,21 +1860,29 @@ static void updateMarquee() {
       // normally scrolls.
       if (g_scrollStation) renderMarqueeLine(sprStation, g_mStation, xS, g_wStationMarq);
       else                 renderLine(sprStation, g_stationName, xS);
-      sprStation.pushSprite(0, yStationName);
+      #if defined(SSD1322)
+  sprStation.pushSprite(stationSpriteX(), oledStationRowY());
+#else
+  sprStation.pushSprite(0, oledStationRowY());
+#endif
       g_lastStationDrawn = g_stationName;
       g_lastStationX = xS;
     }
     if (g_forceRedrawText || g_lastArtistDrawn != g_artist || g_lastArtistX != xA) {
       if (g_scrollArtist) renderMarqueeLine(sprArtist, g_mArtist, xA, g_wArtistMarq);
       else                renderLine(sprArtist, g_artist, xA);
-      sprArtist.pushSprite(0, yArtist);
+      sprArtist.pushSprite(0, oledArtistRowY());
       g_lastArtistDrawn = g_artist;
       g_lastArtistX = xA;
     }
     if (g_forceRedrawText || g_lastTitleDrawn != g_title || g_lastTitleX != xT) {
       if (g_scrollTitle) renderMarqueeLine(sprTitle, g_mTitle, xT, g_wTitleMarq);
       else               renderLine(sprTitle, g_title, xT);
+#if defined(SSD1322)
+      sprTitle.pushSprite(0, oledTitleRowY());
+#else
       sprTitle.pushSprite(0, yTitle);
+#endif
       g_lastTitleDrawn = g_title;
       g_lastTitleX = xT;
     }
@@ -1132,7 +1934,11 @@ static void updateMarquee() {
   if (g_forceRedrawText || scrollS || g_lastStationDrawn != g_stationName || g_lastStationX != xS) {
     if (scrollS) renderMarqueeLine(sprStation, g_mStation, xS, wSM);
     else         renderLine(sprStation, g_stationName, xS);
-    sprStation.pushSprite(0, yStationName);
+    #if defined(SSD1322)
+  sprStation.pushSprite(stationSpriteX(), oledStationRowY());
+#else
+  sprStation.pushSprite(0, oledStationRowY());
+#endif
     g_lastStationDrawn = g_stationName;
     g_lastStationX = xS;
   }
@@ -1152,7 +1958,7 @@ static void updateMarquee() {
   if (g_forceRedrawText || scrollA || g_lastArtistDrawn != g_artist || g_lastArtistX != xA) {
     if (scrollA) renderMarqueeLine(sprArtist, g_mArtist, xA, wAM);
     else         renderLine(sprArtist, g_artist, xA);
-    sprArtist.pushSprite(0, yArtist);
+    sprArtist.pushSprite(0, oledArtistRowY());
     g_lastArtistDrawn = g_artist;
     g_lastArtistX = xA;
   }
@@ -1172,7 +1978,11 @@ static void updateMarquee() {
   if (g_forceRedrawText || scrollT || g_lastTitleDrawn != g_title || g_lastTitleX != xT) {
     if (scrollT) renderMarqueeLine(sprTitle, g_mTitle, xT, wTM);
     else         renderLine(sprTitle, g_title, xT);
+#if defined(SSD1322)
+    sprTitle.pushSprite(0, oledTitleRowY());
+#else
     sprTitle.pushSprite(0, yTitle);
+#endif
     g_lastTitleDrawn = g_title;
     g_lastTitleX = xT;
   }
@@ -1203,10 +2013,98 @@ static String clipTextKeepRight(LGFX_Device* dev, const String& s, int maxW) {
   return String(dots) + tail;
 }
 
+#if defined(SSD1322)
+static void drawOledMenuCounterStatic() {
+  applyRegularUiFont(tft, 10);
+  const uint16_t chromeColor = TFT_LIGHTGREY;
+  tft.setTextColor(chromeColor, TFT_BLACK);
+
+  const int yHeader = 0;
+  const int textH = tft.fontHeight();
+
+  if (g_stationCount > 0) {
+    const String suffix = String(" / ") + String(g_stationCount);
+    const int suffixW = tft.textWidth(suffix.c_str());
+    tft.fillRect(W - suffixW - 2, yHeader, suffixW + 2, textH, TFT_BLACK);
+    tft.setTextDatum(top_right);
+    tft.drawString(suffix, W - 1, yHeader);
+    tft.setTextDatum(top_left);
+  } else {
+    const String noList = String(text_fix(lang::ui_no_list));
+    const int noListW = tft.textWidth(noList.c_str());
+    const int clearW = min(W, max(noListW + 4, W / 3));
+    tft.fillRect(W - clearW, yHeader, clearW, textH, TFT_BLACK);
+    tft.setTextDatum(top_right);
+    tft.drawString(noList, W - 1, yHeader);
+    tft.setTextDatum(top_left);
+  }
+}
+
+static void drawOledMenuCounterValue() {
+  applyRegularUiFont(tft, 10);
+  const uint16_t chromeColor = TFT_LIGHTGREY;
+  tft.setTextColor(chromeColor, TFT_BLACK);
+
+  const int yHeader = 0;
+  const int textH = tft.fontHeight();
+
+  if (g_stationCount > 0) {
+    const String suffix = String(" / ") + String(g_stationCount);
+    const int suffixW = tft.textWidth(suffix.c_str());
+    const String maxValueText = String(g_stationCount);
+    const int valueAreaW = tft.textWidth(maxValueText.c_str()) + 4;
+    const int valueRightX = W - 1 - suffixW;
+    const int valueLeftX = max(0, valueRightX - valueAreaW);
+    tft.fillRect(valueLeftX, yHeader, valueRightX - valueLeftX + 1, textH, TFT_BLACK);
+    tft.setTextDatum(top_right);
+    tft.drawString(String(g_menuIndex + 1), valueRightX, yHeader);
+    tft.setTextDatum(top_left);
+  } else {
+    drawOledMenuCounterStatic();
+  }
+}
+
+static void drawOledMenuCounter() {
+  drawOledMenuCounterStatic();
+  drawOledMenuCounterValue();
+}
+
+static void drawOledMenuOverlay() {
+  applyRegularUiFont(tft, 10);
+  const uint16_t chromeColor = TFT_LIGHTGREY;
+  tft.setTextColor(chromeColor, TFT_BLACK);
+
+  const int screenH = tft.height();
+  const int textH = tft.fontHeight();
+  const int yHeader = 0;
+  const int yFooter = max(0, screenH - textH);
+
+  tft.fillRect(0, yHeader, W, textH, TFT_BLACK);
+  tft.fillRect(0, yFooter, W, textH, TFT_BLACK);
+
+  tft.setTextDatum(top_left);
+  tft.drawString(text_fix("Állomások:"), 0, yHeader);
+  drawOledMenuCounter();
+
+  tft.setTextDatum(top_left);
+  tft.drawString(text_fix("OK: nyom"), 0, yFooter);
+
+  tft.setTextDatum(top_right);
+  tft.drawString(text_fix("Kilép: hosszan"), W - 1, yFooter);
+
+  tft.setTextDatum(top_left);
+  tft.display();
+}
+#endif
+
 static void redrawMenuCounterAndList() {
   if (g_mode != MODE_MENU) return;
 
-  tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
+#if defined(SSD1322)
+  drawOledMenuCounterValue();
+  drawMenuListArea();
+#else
+  applyRegularUiFont(tft, UI_FONT_MENU);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
   const int sidePad = 0;
@@ -1232,10 +2130,36 @@ static void redrawMenuCounterAndList() {
   }
 
   drawMenuListArea();
+#endif
 }
 
 static void drawMenuScreen() {
-  tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
+#if defined(SSD1322)
+  applyRegularUiFont(tft, 10);
+
+  const int screenH = tft.height();
+  const int textH = tft.fontHeight();
+  const int targetRows = 5;
+  const int yHeader = 0;
+  const int yFooter = max(0, screenH - textH);
+
+  tft.fillScreen(TFT_BLACK);
+
+  g_menuHeaderY = yHeader;
+  g_menuCounterY = yHeader;
+  g_menuOkY = yFooter;
+  g_menuIpY = -1000;
+  g_menuTextH = textH;
+  g_menuGap = 0;
+
+  g_menuListTop = 0;
+  g_menuListHeight = screenH;
+  g_menuItemH = max(1, screenH / targetRows);
+
+  drawOledMenuOverlay();
+  drawMenuListArea();
+#else
+  applyRegularUiFont(tft, UI_FONT_MENU);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
   const int h = tft.fontHeight();
@@ -1292,12 +2216,12 @@ static void drawMenuScreen() {
 
   redrawMenuCounterAndList();
 
-  tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
+  applyRegularUiFont(tft, UI_FONT_MENU);
   tft.setCursor(sidePad, yOk);
-  tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.print(lang::ui_ok_exit_hint);
 
-  tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
+  applyRegularUiFont(tft, UI_FONT_MENU);
   tft.setTextColor(TFT_CYAN, TFT_BLACK);
   if (WiFi.status() == WL_CONNECTED) {
     const String ipText = String(lang::ui_ip_prefix) + WiFi.localIP().toString();
@@ -1327,6 +2251,7 @@ static void drawMenuScreen() {
     tft.setCursor(sidePad, yIp);
     tft.print(lang::ui_no_wifi_ip);
   }
+#endif
 }
 
 static void updateMenuNameScroll() {
@@ -1337,7 +2262,9 @@ static void exitMenuRedrawPlayUI() {
   ui_stationSelectorEnd();
   g_mode = MODE_PLAY;
 
-  tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
+  tft.setFont((const GFXfont*)nullptr);
+  tft.setTextSize(1);
+  tft.setTextWrap(false);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   // A station selector most teljes képernyős, ezért visszalépéskor a TELJES UI-t újra kell rajzolni,
   // különben menü-maradványok látszanak lejátszás közben.
@@ -1347,8 +2274,13 @@ static void exitMenuRedrawPlayUI() {
   updateMarquee();
 
   // A teljes redraw után a VU statikus keretét is újra kell építeni.
+#if defined(SSD1322)
+  oledInvalidateVuMeter();
+  oledDrawVuMeter(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+#else
   ui_invalidateVuMeter();
   ui_drawVuMeter(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+#endif
 }
 
 bool app_isMenuMode() {
@@ -1389,11 +2321,15 @@ static bool touchIsInMenuOkZone(int y) {
 }
 
 static int touchMenuVisualTop() {
-  int top = g_menuListTop;
+#if defined(SSD1322)
+  return g_menuListTop;
+#else
+  int top = g_menuListTop - 5;
   if (W <= 320 && H <= 240 && g_menuItemH > 0) {
     top -= g_menuItemH;
   }
   return top;
+#endif
 }
 
 static bool touchIsInMenuListZone(int y) {
@@ -1491,7 +2427,11 @@ static void onButtonLongPress() {
   if (g_mode == MODE_PLAY) {
     g_mode = MODE_MENU;
     ui_stationSelectorBegin(g_currentIndex);
+#if defined(SSD1322)
+    oledInvalidateVuMeter();
+#else
     ui_invalidateVuMeter();
+#endif
     drawMenuScreen();
   } else {
     exitMenuRedrawPlayUI();
@@ -1518,11 +2458,17 @@ static void onButtonShortPress() {
       trackChangedAt = millis();
 
       g_forceRedrawText = true;
-      tft.loadFont(uiRegularFont(UI_FONT_LABEL).c_str());
+      tft.setFont((const GFXfont*)nullptr);
+  tft.setTextSize(1);
+  tft.setTextWrap(false);
       renderLine(sprArtist, "", 0);
       renderLine(sprTitle,  "", 0);
-      sprArtist.pushSprite(0, yArtist);
+      sprArtist.pushSprite(0, oledArtistRowY());
+#if defined(SSD1322)
+      sprTitle.pushSprite(0, oledTitleRowY());
+#else
       sprTitle.pushSprite(0, yTitle);
+#endif
 
       updateStationNameUI();
 
@@ -1604,15 +2550,13 @@ void drawStartupScreen(uint8_t phase){
 
   tft.drawRoundRect(pad, pad, w, h, 12, TFT_WHITE);
 
-  const bool have20 = (FS_20.length() && FS_SB_20.length() && SPIFFS.exists(FS_20) && SPIFFS.exists(FS_SB_20));
-  const bool haveSB24 = (FS_SB_24.length() && SPIFFS.exists(FS_SB_24));
-
-  const String& fontBody  = have20 ? FP_20    : FP_24;
-  const String& fontTitle = haveSB24 ? FP_SB_24 : FP_24;
+  const String& fontBody  = uiRegularFont(UI_FONT_STREAM);
+  const String& fontTitle = uiSemiboldFont(UI_FONT_HEADER);
 
   const String title = lang::boot_starting_radio;
   const bool connectedNow = (WiFi.status() == WL_CONNECTED);
   String base  = connectedNow ? lang::boot_wifi_connected : lang::boot_wifi_connecting;
+  if (!connectedNow && !base.endsWith("...")) base += "...";
 
   String ssidLine = lang::boot_searching_network;
   String infoLine = "";
@@ -1636,57 +2580,68 @@ void drawStartupScreen(uint8_t phase){
 
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
-  tft.loadFont(fontTitle.c_str());
+  { String fp = fontTitle; applyFontPath(tft, &fp); }
   const int hTitle = tft.fontHeight();
   const int wTitle = tft.textWidth(title);
 
-  tft.loadFont(fontBody.c_str());
+  { String fp = fontBody; applyFontPath(tft, &fp); }
   const int hBody  = tft.fontHeight();
   const int wBase  = tft.textWidth(base);
-  const int wDots  = connectedNow ? 0 : tft.textWidth("...");
+  const int wDots  = 0;
   const int hSsid  = hBody;
   const int wSsid  = tft.textWidth(ssidLine);
   const int hInfo  = infoLine.length() ? hBody : 0;
   const int wInfo  = infoLine.length() ? tft.textWidth(infoLine) : 0;
 
-  const int gap1 = 8;
-  const int gap2 = 10;
-  const int gap3 = infoLine.length() ? 6 : 0;
-  const int totalH = hTitle + gap1 + hBody + gap2 + hSsid + (infoLine.length() ? (gap3 + hInfo) : 0);
+  const bool compactOledStartup = (tft.width() == 256 && tft.height() == 64);
 
-  const int yTitle = (tft.height() - totalH) / 2;
-  const int yBody  = yTitle + hTitle + gap1;
-  const int ySsid  = yBody + hBody + gap2;
-  const int yInfo  = ySsid + hSsid + gap3;
+  int yTitle = 0;
+  int yBody  = 0;
+  int ySsid  = 0;
+  int yInfo  = 0;
+  int xBody  = 0;
+  int xSsid  = 0;
+  int xInfo  = 0;
 
-  const int xBody = (tft.width() - (wBase + wDots)) / 2;
-  const int xSsid = (tft.width() - wSsid) / 2;
-  const int xInfo = (tft.width() - wInfo) / 2;
+  if (compactOledStartup) {
+    const int boxY    = tft.height() - 34;
+    const int lineGap = 1;
+    const int totalH  = hBody + lineGap + hSsid + (infoLine.length() ? (lineGap + hInfo) : 0);
 
-  tft.loadFont(fontTitle.c_str());
-  tft.setCursor((tft.width() - wTitle) / 2, yTitle);
-  tft.print(title);
+    yBody = boxY + (34 - totalH) / 2;
+    ySsid = yBody + hBody + lineGap;
+    yInfo = ySsid + hSsid + lineGap;
 
-  tft.loadFont(fontBody.c_str());
+    xBody = (tft.width() - (wBase + wDots)) / 2;
+    xSsid = (tft.width() - wSsid) / 2;
+    xInfo = (tft.width() - wInfo) / 2;
+  } else {
+    const int gap1 = 8;
+    const int gap2 = 10;
+    const int gap3 = infoLine.length() ? 6 : 0;
+    const int totalH = hTitle + gap1 + hBody + gap2 + hSsid + (infoLine.length() ? (gap3 + hInfo) : 0);
+
+    yTitle = (tft.height() - totalH) / 2;
+    yBody  = yTitle + hTitle + gap1;
+    ySsid  = yBody + hBody + gap2;
+    yInfo  = ySsid + hSsid + gap3;
+
+    xBody = (tft.width() - (wBase + wDots)) / 2;
+    xSsid = (tft.width() - wSsid) / 2;
+    xInfo = (tft.width() - wInfo) / 2;
+  }
+
+  if (!compactOledStartup) {
+    { String fp = fontTitle; applyFontPath(tft, &fp); }
+    tft.setCursor((tft.width() - wTitle) / 2, yTitle);
+    tft.print(title);
+  }
+
+  { String fp = fontBody; applyFontPath(tft, &fp); }
   tft.setCursor(xBody, yBody);
   tft.print(base);
 
-  uint16_t c1 = TFT_DARKGREY, c2 = TFT_DARKGREY, c3 = TFT_DARKGREY;
-  if (phase == 1) { c1 = TFT_WHITE;      c2 = TFT_LIGHTGREY; c3 = TFT_DARKGREY; }
-  if (phase == 2) { c1 = TFT_LIGHTGREY; c2 = TFT_WHITE;     c3 = TFT_LIGHTGREY; }
-  if (phase == 3) { c1 = TFT_DARKGREY;  c2 = TFT_LIGHTGREY; c3 = TFT_WHITE; }
-
-  if (!connectedNow) {
-    const int xDots = xBody + wBase;
-    tft.fillRect(xDots, yBody - 2, wDots + 4, hBody + 4, TFT_BLACK);
-
-    tft.setCursor(xDots, yBody);
-    tft.setTextColor(c1, TFT_BLACK); tft.print(".");
-    tft.setTextColor(c2, TFT_BLACK); tft.print(".");
-    tft.setTextColor(c3, TFT_BLACK); tft.print(".");
-  }
-
-  tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setCursor(xSsid, ySsid);
   tft.print(ssidLine);
 
@@ -1732,6 +2687,7 @@ void app_setup() {
 
 
   Serial.begin(115200);
+  serial_spiffs_begin(Serial);
   ensureLogMutex();
   reserveHotStrings();
   logMemorySnapshot("boot");
@@ -1746,10 +2702,27 @@ void app_setup() {
   loadStationsFromSPIFFS();
 
   initDisplayBasic();
-  tft.setFont(&fonts::Font0);
+#if defined(SSD1322)
+  tft.setFont((const GFXfont*)nullptr);
+  tft.setTextSize(1);
+  tft.setTextWrap(false);
+#else
+  tft.setFont((const GFXfont*)nullptr);
+  tft.setTextSize(1);
+  tft.setTextWrap(false);
+#endif
 
 // Boot logo 3 másodpercig
 {
+#if defined(SSD1322)
+  const int logoW = MYRADIO_LOGO_OLED_200X30_W;
+  const int logoH = MYRADIO_LOGO_OLED_200X30_H;
+  const int x = (tft.width()  - logoW) / 2;
+  const int y = (tft.height() - logoH) / 2;
+
+  tft.fillScreen(TFT_BLACK);
+  drawGray4Bitmap(x, y, logoW, logoH, myradio_logo_oled_200x30);
+#else
   const int logoW = LOGO_WIDTH;
   const int logoH = LOGO_HEIGHT;
   const int x = (tft.width()  - logoW) / 2;
@@ -1757,6 +2730,7 @@ void app_setup() {
 
   tft.fillScreen(TFT_BLACK);
   tft.pushImage(x, y, logoW, logoH, myradiologo_240);
+#endif
   delay(3000);
 }
 
@@ -1774,12 +2748,49 @@ drawStartupScreen(0);
 
   wifi_manager_init(drawWiFiPortalHelp, onWiFiRestored, onWiFiAttempt);
 
+
+  // Serial SPIFFS maintenance pre-portal window:
+  // This must happen BEFORE wifi_manager_begin_or_portal(), because that path can
+  // become blocking when SPIFFS is empty and the device falls into Wi-Fi setup.
+  {
+    const uint32_t maintWindowStart = millis();
+    while (millis() - maintWindowStart < 3000) {
+      serial_spiffs_poll();
+      if (serial_spiffs_is_active()) {
+        tft.fillScreen(TFT_BLACK);
+        tft.setTextColor(TFT_WHITE, TFT_BLACK);
+        tft.setTextDatum(top_left);
+        tft.setFont((const GFXfont*)nullptr);
+        tft.setTextSize(1);
+        tft.drawString("Serial maintenance mode", 6, 6);
+        tft.drawString("SPIFFS access active", 6, 22);
+        Serial.println("[MRSPIFS] pre-portal maintenance override");
+        return;
+      }
+      delay(10);
+    }
+  }
+
   wifi_manager_begin_or_portal();
 }
 
   
 uint8_t phase = 0;
 while (WiFi.status() != WL_CONNECTED) {
+  serial_spiffs_poll();
+  if (serial_spiffs_is_active()) {
+    g_startupConnectScreenActive = false;
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextDatum(top_left);
+    tft.setFont((const GFXfont*)nullptr);
+    tft.setTextSize(1);
+    tft.drawString("Serial maintenance mode", 6, 6);
+    tft.drawString("SPIFFS access active", 6, 22);
+    Serial.println("[MRSPIFS] startup WiFi wait overridden by serial maintenance");
+    return;
+  }
+
   g_startupConnectPhase = phase;
   drawStartupScreen(phase);
 
@@ -1807,9 +2818,15 @@ while (WiFi.status() != WL_CONNECTED) {
     u.wifiX = &wifiX; u.wifiY = &wifiY; u.wifiW = &wifiW; u.wifiH = &wifiH;
     u.yVol  = &yVol;
 
+#if defined(SSD1322)
+    // Font paths (LGFX loadFont) - smaller OLED baseline
+    u.FP_20    = uiRegularFontPtr(10);
+    u.FP_SB_20 = uiSemiboldFontPtr(12);
+#else
     // Font paths (LGFX loadFont)
     u.FP_20    = uiRegularFontPtr(UI_FONT_LABEL);
     u.FP_SB_20 = uiSemiboldFontPtr(20);
+#endif
 
     u.wifiConnectedAtMs = wifi_manager_connected_at_ptr();
     ui_display_bind(u);
@@ -1829,15 +2846,21 @@ while (WiFi.status() != WL_CONNECTED) {
     sctx.menuListHeight = &g_menuListHeight;
     sctx.menuItemH = &g_menuItemH;
     sctx.menuNameY = &g_menuNameY;
+    sctx.screenH = &H;
+#if defined(SSD1322)
+    sctx.labelFontPath = uiRegularFontPtr(9);
+    sctx.activeFontPath = uiRegularFontPtr(10);
+#else
     sctx.labelFontPath = uiRegularFontPtr(UI_FONT_LABEL);
     sctx.activeFontPath = uiSemiboldFontPtr(24);
+#endif
     sctx.menuScrollIntervalMs = MENU_MS;
     sctx.colorBg = TFT_BLACK;
-    sctx.colorActiveBg = TFT_DARKGREY;
+    sctx.colorActiveBg = TFT_WHITE;
     sctx.colorActiveBorder = TFT_GOLD;
-    sctx.colorActiveText = TFT_GOLD;
-    sctx.colorSideText = 0xD69A;
-    sctx.colorSideFarText = 0x7BEF;
+    sctx.colorActiveText = TFT_WHITE;
+    sctx.colorSideText = 0x8C51;
+    sctx.colorSideFarText = 0x4208;
     ui_stationSelectorInit(sctx);
   }
 
@@ -1846,7 +2869,12 @@ while (WiFi.status() != WL_CONNECTED) {
 
   // VU meter init (audio hook fogja etetni)
   vu_init();
+#if defined(SSD1322)
+  oledInvalidateVuMeter();
+  drawOledIpLine();
+#else
   ui_drawVuMeter(0, 0, 0, 0);
+#endif
 
   if (I2S_MCLK >= 0) audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT, I2S_MCLK);
   else               audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
@@ -1900,6 +2928,12 @@ while (WiFi.status() != WL_CONNECTED) {
   state_meta_setup();
 }
 void app_loop() {
+  serial_spiffs_poll();
+  if (serial_spiffs_is_active()) {
+    delay(2);
+    return;
+  }
+
   NetServerCtx nctx;
   nctx.server = &server;
 
@@ -2009,13 +3043,37 @@ state_meta_poll(mctx);
     stream_watchdog_pollReconnect(ctx);
   }
 
+  // ---- Buffer kijelzés (OLED-en ritkított frissítéssel) ----
+  static uint32_t lastBufferPollMs = 0;
+  uint32_t nowBuf = millis();
+  if (g_mode == MODE_PLAY && !ui_stationSelectorActive() && (nowBuf - lastBufferPollMs >= 2000)) {
+    lastBufferPollMs = nowBuf;
+    stream_core_readBuffer(g_bufferFilled, g_bufferFree, g_bufferTotal, g_bufferPercent);
+#if !defined(SSD1322)
+    updateBufferIndicatorOnly();
+#endif
+  }
+
   // ---- VU meter frissítés (UI oldalon) ----
   static uint32_t lastVuMs = 0;
   uint32_t nowVu = millis();
-  if (g_mode == MODE_PLAY && (nowVu - lastVuMs >= 60)) {
+  if (g_mode == MODE_PLAY && (nowVu - lastVuMs >= 100)) {
     lastVuMs = nowVu;
+#if defined(SSD1322)
+    oledUpdateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+#else
     ui_updateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+#endif
   }
+
+#if !defined(SSD1322)
+  static uint32_t lastBottomUiTickMs = 0;
+  uint32_t nowBottomUi = millis();
+  if (g_mode == MODE_PLAY && !ui_stationSelectorActive() && (nowBottomUi - lastBottomUiTickMs >= 1500)) {
+    lastBottomUiTickMs = nowBottomUi;
+    ui_updateWifiIconOnly();
+  }
+#endif
 
   delay(1);
 }

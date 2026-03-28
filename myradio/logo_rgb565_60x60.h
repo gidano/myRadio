@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include <pgmspace.h>
-#include <LovyanGFX.hpp>
 
 static constexpr int LOGO_W = 60;
 static constexpr int LOGO_H = 60;
@@ -75,18 +74,5 @@ static const uint16_t logo_rgb565_60x60[LOGO_W * LOGO_H] PROGMEM = {
 
 template <typename TFT>
 inline void drawLogo60x60(TFT& lcd, int x, int y) {
-  uint16_t line[LOGO_W];
-
-  lcd.startWrite();
-  lcd.setAddrWindow(x, y, LOGO_W, LOGO_H);
-
-  for (int row = 0; row < LOGO_H; ++row) {
-    const int base = row * LOGO_W;
-    for (int col = 0; col < LOGO_W; ++col) {
-      line[col] = pgm_read_word(&logo_rgb565_60x60[base + col]);
-    }
-    lcd.pushPixels(line, LOGO_W, true);
-  }
-
-  lcd.endWrite();
+  lcd.pushImage(x, y, LOGO_W, LOGO_H, logo_rgb565_60x60);
 }

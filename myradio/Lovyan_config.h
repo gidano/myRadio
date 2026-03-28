@@ -1,27 +1,38 @@
 #pragma once
-#include <LovyanGFX.hpp>
+
+//====================================================
+// KIJELZŐ VÁLASZTÁS (CSAK egyet válassz)
+//====================================================
+
+//#define ILI9488
+//#define ST7789_XPT2046
+//#define SSD1322
+#define ST7789
+//#define ILI9341
+//#define ST7796
+
+#include "conf/internal_model_select.h"
+
+#if defined(SSD1322)
+  #include "src/hw/ssd1322/lgfx_compat_ssd1322.h"
+#else
+  #include <LovyanGFX.hpp>
+#endif
 
 //====================================================
 // myRadio - központi hardver/config fájl
 //====================================================
 
 //====================================================
-// KIJELZŐ VÁLASZTÁS (CSAK egyet válassz)
-//====================================================
-
-#define ILI9488
-//#define ST7789_XPT2046
-//#define ST7789
-//#define ILI9341
-//#define ST7796
-
-#include "conf/internal_model_select.h"
-
-//====================================================
 // VERZIÓ
 //====================================================
 #ifndef MYRADIO_VERSION
-  #define MYRADIO_VERSION "0.2.2-touch-preview"
+  #define MYRADIO_VERSION "0.2.3-oled-preview"
+#endif
+
+// SSD1322 preview debug
+#ifndef SSD1322_BOOT_TEST_PATTERN
+  #define SSD1322_BOOT_TEST_PATTERN 1
 #endif
 
 //====================================================
@@ -79,12 +90,21 @@
   #ifndef TFT_RST
     #define TFT_RST -1
   #endif
+  #if defined(SSD1322)
+  #ifndef TFT_BL
+    #define TFT_BL -1
+  #endif
+  #ifndef BRIGHTNESS_PIN
+    #define BRIGHTNESS_PIN -1
+  #endif
+#else
   #ifndef TFT_BL
     #define TFT_BL 7
   #endif
   #ifndef BRIGHTNESS_PIN
     #define BRIGHTNESS_PIN TFT_BL
   #endif
+#endif
 
   #ifndef PIN_MOSI
     #define PIN_MOSI 11
@@ -187,7 +207,11 @@
   #define TFT_SPI_HOST SPI2_HOST
 #endif
 #ifndef TFT_SPI_FREQ_WRITE
-  #define TFT_SPI_FREQ_WRITE 40000000
+  #if defined(SSD1322)
+    #define TFT_SPI_FREQ_WRITE 10000000
+  #else
+    #define TFT_SPI_FREQ_WRITE 40000000
+  #endif
 #endif
 #ifndef TFT_SPI_FREQ_READ
   #define TFT_SPI_FREQ_READ 16000000
@@ -224,7 +248,7 @@
   #define TFT_OFFSET_Y  0
   #define TFT_INVERT    false
   #define TFT_RGB_ORDER false
-  #define TFT_ROTATION  3
+  #define TFT_ROTATION  1
 #endif
 
 #if defined(ILI9341)
@@ -257,6 +281,17 @@
   #define TFT_ROTATION  1
 #endif
 
+
+#if defined(SSD1322)
+  #define TFT_WIDTH     256
+  #define TFT_HEIGHT    64
+  #define TFT_OFFSET_X  0
+  #define TFT_OFFSET_Y  0
+  #define TFT_INVERT    false
+  #define TFT_RGB_ORDER false
+  #define TFT_ROTATION  0
+#endif
+
 #ifndef TOUCH_ROTATION
   #define TOUCH_ROTATION TFT_ROTATION
 #endif
@@ -266,6 +301,10 @@
 //================================================================
 // LGFX eszköz (megosztott busz, #define által kiválasztott panel)
 //================================================================
+#if defined(SSD1322)
+// SSD1322-nél a LovyanGFX helyett egy kompatibilitási adaptert használunk,
+// így a magasabb szintű UI kód nagy része változatlanul maradhat.
+#else
 class LGFX : public lgfx::LGFX_Device
 {
   lgfx::Bus_SPI   _bus;
@@ -284,60 +323,44 @@ class LGFX : public lgfx::LGFX_Device
 public:
   LGFX(void)
   {
-    // ---------- BUS ----------
     {
       auto cfg = _bus.config();
-
       cfg.spi_host   = TFT_SPI_HOST;
       cfg.spi_mode   = 0;
-
       cfg.freq_write = TFT_SPI_FREQ_WRITE;
       cfg.freq_read  = TFT_SPI_FREQ_READ;
-
-      cfg.spi_3wire  = true;   // no MISO
+      cfg.spi_3wire  = true;
       cfg.use_lock   = true;
-
       cfg.pin_sclk = PIN_SCLK;
       cfg.pin_mosi = PIN_MOSI;
       cfg.pin_miso = PIN_MISO;
       cfg.pin_dc   = TFT_DC;
-
       _bus.config(cfg);
       _panel.setBus(&_bus);
     }
 
-    // ---------- PANEL ----------
     {
       auto cfg = _panel.config();
-
       cfg.pin_cs   = TFT_CS;
       cfg.pin_rst  = TFT_RST;
       cfg.pin_busy = -1;
-
       cfg.panel_width  = TFT_WIDTH;
       cfg.panel_height = TFT_HEIGHT;
-
       cfg.offset_x = TFT_OFFSET_X;
       cfg.offset_y = TFT_OFFSET_Y;
-
       cfg.invert    = TFT_INVERT;
       cfg.rgb_order = TFT_RGB_ORDER;
-
-      // 3-wire SPI, no reads
       cfg.readable   = false;
       cfg.bus_shared = false;
-
       _panel.config(cfg);
     }
 
-    // ---------- BACKLIGHT ----------
-    {
+    if (BRIGHTNESS_PIN >= 0) {
       auto cfg = _light.config();
       cfg.pin_bl      = BRIGHTNESS_PIN;
       cfg.invert      = TFT_BL_INVERT;
       cfg.freq        = TFT_BL_PWM_FREQ;
       cfg.pwm_channel = TFT_BL_PWM_CH;
-
       _light.config(cfg);
       _panel.setLight(&_light);
     }
@@ -346,3 +369,4 @@ public:
     setRotation(TFT_ROTATION);
   }
 };
+#endif
