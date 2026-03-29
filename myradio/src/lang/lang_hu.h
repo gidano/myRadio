@@ -32,11 +32,11 @@ static constexpr const char* ui_volume_prefix          = "Hangerő: ";
 
 static constexpr const char* wifi_setup_about_title    = "A WiFi beállításáról:";
 static constexpr const char* wifi_setup_title          = "WiFi beállítás";
-static constexpr const char* wifi_setup_step1          = "1) Csatlakozz a WiFi hálózathoz:";
-static constexpr const char* wifi_setup_step2          = "2) Böngészőben nyisd meg:";
+static constexpr const char* wifi_setup_step1          = "1) Csatlakozz a WiFi-hez:";
+static constexpr const char* wifi_setup_step2          = "2) Böngészőben:";
 static constexpr const char* wifi_setup_step3          = "3) Add meg az SSID és jelszó párost";
-static constexpr const char* wifi_setup_save_hint      = "Majd nyomj a Mentés gombra";
-static constexpr const char* wifi_setup_restart_hint   = "A rádió újraindul";
+static constexpr const char* wifi_setup_save_hint      = "Mentés gomb,";
+static constexpr const char* wifi_setup_restart_hint   = "a rádió újraindul";
 static constexpr const char* wifi_setup_ap_prefix      = "Hálózat neve:";
 static constexpr const char* wifi_setup_browser_hint   = "Böngésző cím:";
 

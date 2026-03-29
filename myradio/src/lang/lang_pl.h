@@ -27,11 +27,11 @@ static constexpr const char* ui_volume_prefix          = "Głośność: ";
 
 static constexpr const char* wifi_setup_about_title    = "O konfiguracji WiFi:";
 static constexpr const char* wifi_setup_title          = "Konfiguracja WiFi";
-static constexpr const char* wifi_setup_step1          = "1) Połącz się z siecią WiFi:";
-static constexpr const char* wifi_setup_step2          = "2) Otwórz w przeglądarce:";
+static constexpr const char* wifi_setup_step1          = "1) WiFi połącz:";
+static constexpr const char* wifi_setup_step2          = "2) W przeglądarce:";
 static constexpr const char* wifi_setup_step3          = "3) Wpisz SSID i hasło";
-static constexpr const char* wifi_setup_save_hint      = "Następnie naciśnij Zapisz";
-static constexpr const char* wifi_setup_restart_hint   = "Radio uruchomi się ponownie";
+static constexpr const char* wifi_setup_save_hint      = "Naciśnij Zapisz,";
+static constexpr const char* wifi_setup_restart_hint   = "Radio uruchomi...";
 static constexpr const char* wifi_setup_ap_prefix      = "Nazwa sieci:";
 static constexpr const char* wifi_setup_browser_hint   = "Adres w przeglądarce:";
 

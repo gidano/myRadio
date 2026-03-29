@@ -32,11 +32,11 @@ static constexpr const char* ui_volume_prefix          = "Volume: ";
 
 static constexpr const char* wifi_setup_about_title    = "About WiFi setup:";
 static constexpr const char* wifi_setup_title          = "WiFi setup";
-static constexpr const char* wifi_setup_step1          = "1) Connect to the WiFi network:";
-static constexpr const char* wifi_setup_step2          = "2) Open in your browser:";
+static constexpr const char* wifi_setup_step1          = "1) Connect to WiFi:";
+static constexpr const char* wifi_setup_step2          = "2) In browser:";
 static constexpr const char* wifi_setup_step3          = "3) Enter SSID and password";
-static constexpr const char* wifi_setup_save_hint      = "Then press Save";
-static constexpr const char* wifi_setup_restart_hint   = "The radio will restart";
+static constexpr const char* wifi_setup_save_hint      = "Press Save,";
+static constexpr const char* wifi_setup_restart_hint   = "Radio restart";
 static constexpr const char* wifi_setup_ap_prefix      = "Network name:";
 static constexpr const char* wifi_setup_browser_hint   = "Browser address:";
 
