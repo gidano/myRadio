@@ -53,6 +53,14 @@ Ha most telepíted a firmware-t, érdemes a megfelelő `SPIFFS_xxx.bin` fájlt i
 
 -------------------------------------------------------
 
+## Update ##
+
+I've created a PC application for managing SPIFFS folders and files; with it, you can upload a .zip file that matches the size of the ESP32 partition, or perform other file operations on the contents of the SPIFFS!
+
+[myRadio SPIFFS Manager](https://github.com/gidano/myRadio-SPIFFS-Manager)
+
+--
+
 ## Uploading the SPIFFS image
 
 The project includes pre-built `SPIFFS_xxx` files, so you don’t need to manually upload the contents of the `./data/` folder one by one.
