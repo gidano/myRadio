@@ -1,3 +1,9 @@
+## Update ##
+
+I've created a PC application for managing SPIFFS folders and files; with it, you can upload a .zip file that matches the size of the ESP32 partition, or perform other file operations on the contents of the SPIFFS!
+
+[myRadio SPIFFS Manager](https://github.com/gidano/myRadio-SPIFFS-Manager)
+
 ## SPIFFS folder structure
 The diagram below shows the structure of the **`data` folder stored in SPIFFS**.
 
