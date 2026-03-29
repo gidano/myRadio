@@ -1,3 +1,9 @@
+## Frissítés  ##
+
+Készítettem egy PC-s alkalmazást az SPIFFS mappák/fájlok kezeléséhez; ezzel egy, az ESP32 partíciójának megfelelő méretű .zip fájlt is feltölthetsz, vagy egyéb fájlműveleteket végezhetsz az SPIFFS tartalmával!
+
+[myRadio SPIFFS Manager](https://github.com/gidano/myRadio-SPIFFS-Manager)
+
 ## SPIFFS mappa szerkezet
 
 Az alábbi ábra a **SPIFFS-ben található `data` mappa** szerkezetét mutatja.
