@@ -6,6 +6,8 @@ Készítettem egy PC-s alkalmazást az SPIFFS mappák/fájlok kezeléséhez; ezz
 
 [myRadio SPIFFS Manager](https://github.com/gidano/myRadio-SPIFFS-Manager)
 
+--
+
 A projekt mellé előre elkészített `SPIFFS_xxx` fájlok is tartoznak, így nem szükséges a `./data/` mappa tartalmát kézzel, egyesével feltölteni.
 
 ### Mire valók ezek?
