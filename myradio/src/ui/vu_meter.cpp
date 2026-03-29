@@ -36,9 +36,11 @@ static inline void feed_core(const int16_t* s, size_t n, bool isr)
   // olcsó envelope (integer)
   auto follow = [](uint16_t env, uint16_t p) -> uint16_t {
     if (p > env) {
-      env = env + (uint16_t)(((uint32_t)(p - env) * 3U) / 4U);
+      // Gyorsabb attack, hogy az OLED VU élénkebben reagáljon.
+      env = env + (uint16_t)(((uint32_t)(p - env) * 7U) / 8U);
     } else {
-      env = env - (uint16_t)(((uint32_t)(env - p)) / 10U);
+      // Gyorsabb release, hogy kevésbé legyen lustán csorgó.
+      env = env - (uint16_t)(((uint32_t)(env - p)) / 6U);
     }
     return env;
   };
@@ -119,7 +121,7 @@ void vu_feedStereo(const int16_t* s, size_t n)
 static inline void decay_peaks_if_needed()
 {
   uint32_t now = millis();
-  if (now - lastPeakDecay >= 90) {
+  if (now - lastPeakDecay >= 70) {
     portENTER_CRITICAL(&mux);
     if (peakL > 0) peakL--;
     if (peakR > 0) peakR--;
