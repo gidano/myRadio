@@ -792,8 +792,13 @@ static int wifiX, wifiY, wifiW, wifiH;
 static uint32_t lastWifiDraw = 0;
 static const uint32_t WIFI_DRAW_MS = 2000;
 
+#if defined(SSD1322)
+static const uint32_t MARQUEE_MS = 120;  // OLED-en ritkább marquee tick, hogy kisebb legyen a kijelzőterhelés
+static const int32_t  SCROLL_STEP = 2;   // közel azonos vizuális tempó, de kevesebb redraw
+#else
 static const uint32_t MARQUEE_MS = 80;   // marquee tick (smaller=faster)
-static const int32_t  SCROLL_STEP = 3;    // pixels per tick
+static const int32_t  SCROLL_STEP = 3;   // pixels per tick
+#endif
 static const int32_t  SCROLL_GAP  = 40;   // blank gap between repeats
 static const uint32_t MENU_MS    = 60;
 
@@ -1671,7 +1676,7 @@ static void oledUpdateVuMeterOnly(uint8_t lvlL, uint8_t lvlR, uint8_t peakL, uin
   if (!pendingFlush) return;
 
   const uint32_t now = millis();
-  if (now - lastFlushMs < 110) return;
+  if (now - lastFlushMs < 85) return;
 
   tft.display();
   lastFlushMs = now;
@@ -3067,7 +3072,12 @@ state_meta_poll(mctx);
   // ---- VU meter frissítés (UI oldalon) ----
   static uint32_t lastVuMs = 0;
   uint32_t nowVu = millis();
-  if (g_mode == MODE_PLAY && (nowVu - lastVuMs >= 100)) {
+#if defined(SSD1322)
+  const uint32_t vuUiIntervalMs = 85;
+#else
+  const uint32_t vuUiIntervalMs = 100;
+#endif
+  if (g_mode == MODE_PLAY && (nowVu - lastVuMs >= vuUiIntervalMs)) {
     lastVuMs = nowVu;
 #if defined(SSD1322)
     oledUpdateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
