@@ -118,3 +118,11 @@ The language can be selected at compile time in <b>Lovyan_config.h</b>.
 <a href="https://github.com/gidano/myRadio-SPIFFS-Manager"><b>myRadio SPIFFS Manager</b></a>
 </p>
  
+## 📜 License
+
+This project is licensed under CC BY-NC 4.0 with required attribution.
+
+You are free to use and modify this project for non-commercial purposes,  
+but you must give visible credit and link to the original repository.
+
+See the [LICENSE](LICENSE) file for full details.
