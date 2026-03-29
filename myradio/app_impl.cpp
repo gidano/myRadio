@@ -20,7 +20,17 @@
 #include <SPIFFS.h>
 #include "Rotary.h"
 #if defined(SSD1322)
-#include "myradio_logo_20x20.h"
+#include "logo_rgb565_20x20.h"
+#if defined(SSD1322)
+static constexpr int OLED_CORNER_LOGO_W = 20;
+static constexpr int OLED_CORNER_LOGO_H = 20;
+#ifndef MYRADIO_LOGO_20X20_W
+#define MYRADIO_LOGO_20X20_W OLED_CORNER_LOGO_W
+#endif
+#ifndef MYRADIO_LOGO_20X20_H
+#define MYRADIO_LOGO_20X20_H OLED_CORNER_LOGO_H
+#endif
+#endif
 #include "audio_icons/aac_20.h"
 #include "audio_icons/flac_20.h"
 #include "audio_icons/mp3_20.h"
@@ -1155,7 +1165,7 @@ static void drawStreamLabelLine() {
   // OLED-en csak a stream sor saját sávját töröljük, így nem maradnak ott kosz karakterek,
   // de az állomásnév alsó pixeleibe sem törlünk bele.
   const int leftBound = CODEC_ICON_W + 1;
-  const int rightBound = W - MYRADIO_LOGO_20X20_W - 1;
+  const int rightBound = W - OLED_CORNER_LOGO_W - 1;
   // Csak a stream sor saját sávját töröljük.
   if (rightBound > leftBound) clearRect(leftBound, lineY, rightBound - leftBound, lineH);
 #else
@@ -1785,7 +1795,7 @@ static void drawStaticUI() {
 #if defined(SSD1322)
   // Top row: codec | station | logo
   drawCodecIconTopLeft();
-  drawGray4Bitmap(W - MYRADIO_LOGO_20X20_W, 0, MYRADIO_LOGO_20X20_W, MYRADIO_LOGO_20X20_H, myradio_logo_20x20);
+  tft.pushImage(W - OLED_CORNER_LOGO_W, 0, OLED_CORNER_LOGO_W, OLED_CORNER_LOGO_H, logo_rgb565_20x20);
 
   int wS = sprStation.textWidth(g_stationName.c_str());
   int xS = (wS <= (int)sprStation.width()) ? (((int)sprStation.width() - wS) / 2) : 0;
