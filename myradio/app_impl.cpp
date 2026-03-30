@@ -2899,7 +2899,7 @@ drawStartupScreen(0);
 
   
 uint8_t phase = 0;
-while (WiFi.status() != WL_CONNECTED) {
+while (true) {
   serial_spiffs_poll();
   if (serial_spiffs_is_active()) {
     g_startupConnectScreenActive = false;
@@ -2914,6 +2914,11 @@ while (WiFi.status() != WL_CONNECTED) {
     return;
   }
 
+  const bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  const bool ipReady = wifiConnected && (WiFi.localIP() != IPAddress((uint32_t)0));
+  const bool gwReady = wifiConnected && (WiFi.gatewayIP() != IPAddress((uint32_t)0));
+  if (wifiConnected && ipReady && gwReady) break;
+
   g_startupConnectPhase = phase;
   drawStartupScreen(phase);
 
@@ -2925,7 +2930,7 @@ while (WiFi.status() != WL_CONNECTED) {
   drawStartupScreen(0);
   Serial.println(String("\n") + String(lang::boot_wifi_connected));
   Serial.println(lang::boot_wifi_stabilizing_log);
-  delay(1200);
+  delay(1600);
 
   startWebServer();
 
