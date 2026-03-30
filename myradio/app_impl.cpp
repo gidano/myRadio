@@ -123,6 +123,7 @@ static String* uiRegularFontPtr(int preferredSize);
 static String* uiSemiboldFontPtr(int preferredSize);
 static const String& uiRegularFont(int preferredSize);
 static const String& uiSemiboldFont(int preferredSize);
+static void updateMarquee();
 bool app_isMenuMode();
 void app_exitMenuRedrawPlayUI();
 bool startPlaybackCurrent(bool allowReloadPlaylist);
@@ -133,6 +134,12 @@ static void onTouchTap(int x, int y);
 static void onTouchLongPress(int x, int y);
 void drawBottomBar();
 static void drawOledIpLine();
+static void drawMenuScreen();
+static void drawStaticUI();
+#if defined(SSD1322)
+static void oledRegisterActivity(bool redraw = true);
+static void oledIdleProtectionTick();
+#endif
 #if defined(SSD1322)
 static void oledUpdateVolumeOnly();
 
@@ -302,6 +309,15 @@ static void drawGrayFromRgb565Bitmap(int x, int y, int w, int h, const uint16_t*
 static bool g_tftReady = false;
 static bool g_touchEnabled = (TOUCH_MODEL != TOUCH_NONE);
 static InputTouchRuntimeState g_touchState;
+#if defined(SSD1322)
+static uint32_t g_oledLastActivityMs = 0;
+static bool g_oledDimmed = false;
+static bool g_oledDisplayOff = false;
+static constexpr uint32_t OLED_DIM_TIMEOUT_MS = 120000UL;
+static constexpr uint32_t OLED_OFF_TIMEOUT_MS = 300000UL;
+static constexpr uint8_t OLED_BRIGHTNESS_NORMAL = 255;
+static constexpr uint8_t OLED_BRIGHTNESS_DIM = 48;
+#endif
 
 static void initDisplayBasic() {
   if (g_tftReady) return;
@@ -309,12 +325,68 @@ static void initDisplayBasic() {
   tft.init();
   tft.setRotation(TFT_ROTATION);      // a Lovyan_config.h-ban állítod be
   tft.setBrightness(255);
+#if defined(SSD1322)
+  tft.setDisplayPower(true);
+  g_oledLastActivityMs = millis();
+  g_oledDimmed = false;
+  g_oledDisplayOff = false;
+#endif
   tft.fillScreen(TFT_BLACK);
 #if defined(SSD1322)
   ssd1322_draw_debug_boot(tft);
 #endif
   g_tftReady = true;
 }
+
+#if defined(SSD1322)
+static void oledRedrawCurrentScreen() {
+  tft.fillScreen(TFT_BLACK);
+  if (app_isMenuMode()) {
+    drawMenuScreen();
+  } else {
+    drawStaticUI();
+    updateMarquee();
+    oledInvalidateVuMeter();
+    oledDrawVuMeter(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+  }
+}
+
+static void oledRegisterActivity(bool redraw) {
+  if (!g_tftReady) return;
+  g_oledLastActivityMs = millis();
+
+  const bool wasOff = g_oledDisplayOff;
+  if (g_oledDisplayOff) {
+    tft.setDisplayPower(true);
+    g_oledDisplayOff = false;
+  }
+  if (g_oledDimmed || wasOff) {
+    tft.setBrightness(OLED_BRIGHTNESS_NORMAL);
+    g_oledDimmed = false;
+  }
+  if (wasOff && redraw) {
+    oledRedrawCurrentScreen();
+  }
+}
+
+static void oledIdleProtectionTick() {
+  if (!g_tftReady) return;
+  if (g_startupConnectScreenActive) return;
+
+  const uint32_t now = millis();
+  const uint32_t idleMs = now - g_oledLastActivityMs;
+
+  if (!g_oledDisplayOff && idleMs >= OLED_OFF_TIMEOUT_MS) {
+    tft.setDisplayPower(false);
+    g_oledDisplayOff = true;
+    return;
+  }
+  if (!g_oledDimmed && idleMs >= OLED_DIM_TIMEOUT_MS) {
+    tft.setBrightness(OLED_BRIGHTNESS_DIM);
+    g_oledDimmed = true;
+  }
+}
+#endif
 
 static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   initDisplayBasic();
@@ -764,6 +836,10 @@ int g_bufferPercent = 0;
 // UI-callback wrappers (input_rotary / net_server expects void() callbacks)
 // Keep these thin wrappers in app_impl to avoid modifying callback signatures.
 static void updateVolumeOnly() {
+#if defined(SSD1322)
+  oledRegisterActivity();
+#endif
+
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
 #if defined(SSD1322)
   oledUpdateVolumeOnly();
@@ -2113,6 +2189,10 @@ static void drawOledMenuOverlay() {
 #endif
 
 static void redrawMenuCounterAndList() {
+#if defined(SSD1322)
+  oledRegisterActivity();
+#endif
+
   if (g_mode != MODE_MENU) return;
 
 #if defined(SSD1322)
@@ -2362,6 +2442,10 @@ static int touchMenuRowFromY(int y) {
 }
 
 static void onTouchTap(int x, int y) {
+#if defined(SSD1322)
+  oledRegisterActivity();
+#endif
+
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
 
@@ -2400,6 +2484,10 @@ static void onTouchTap(int x, int y) {
 }
 
 static void onTouchDrag(int startX, int startY, int x, int y) {
+#if defined(SSD1322)
+  oledRegisterActivity();
+#endif
+
   if (g_mode != MODE_MENU || g_stationCount <= 0) return;
   if (!touchIsInMenuListZone(startY)) return;
   if (x < 0 || y < 0) return;
@@ -2429,6 +2517,10 @@ static void onTouchDrag(int startX, int startY, int x, int y) {
 }
 
 static void onTouchLongPress(int x, int y) {
+#if defined(SSD1322)
+  oledRegisterActivity();
+#endif
+
   (void)x; (void)y;
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
@@ -2436,6 +2528,10 @@ static void onTouchLongPress(int x, int y) {
 }
 
 static void onButtonLongPress() {
+#if defined(SSD1322)
+  oledRegisterActivity();
+#endif
+
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
 
@@ -2454,6 +2550,10 @@ static void onButtonLongPress() {
 }
 
 static void onButtonShortPress() {
+#if defined(SSD1322)
+  oledRegisterActivity();
+#endif
+
   if (g_mode == MODE_PLAY) {
     togglePaused();
   } else if (g_mode == MODE_MENU) {
@@ -2750,7 +2850,9 @@ void app_setup() {
 }
 
 drawStartupScreen(0);
-
+#if defined(SSD1322)
+  g_oledLastActivityMs = millis();
+#endif
 
   WiFi.setSleep(false);
   esp_wifi_set_ps(WIFI_PS_NONE);
@@ -3093,6 +3195,10 @@ state_meta_poll(mctx);
     lastBottomUiTickMs = nowBottomUi;
     ui_updateWifiIconOnly();
   }
+#endif
+
+#if defined(SSD1322)
+  oledIdleProtectionTick();
 #endif
 
   delay(1);
