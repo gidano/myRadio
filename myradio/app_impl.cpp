@@ -693,17 +693,6 @@ int    g_pendingBitrateK = 0;
 
 enum UIMode { MODE_PLAY, MODE_MENU };
 static UIMode g_mode = MODE_PLAY;
-
-#if defined(SSD1322)
-static constexpr uint32_t OLED_STATION_SWITCH_UI_QUIET_MS = 2500;
-static bool oledInStationSwitchUiQuietWindow() {
-  if (g_mode != MODE_PLAY) return false;
-  if (ui_stationSelectorActive()) return false;
-  if (g_connectRequestedAt == 0) return false;
-  const uint32_t dt = millis() - g_connectRequestedAt;
-  return dt < OLED_STATION_SWITCH_UI_QUIET_MS;
-}
-#endif
 // ------------------ Codec ikon ------------------ //
 #if defined(SSD1322)
 #ifndef CODEC_ICON_W
@@ -804,12 +793,8 @@ static uint32_t lastWifiDraw = 0;
 static const uint32_t WIFI_DRAW_MS = 2000;
 
 #if defined(SSD1322)
-static const uint32_t MARQUEE_MS = 120;  // alap OLED marquee tick; a tényleges sorfrissítés lent külön, még jobban ritkított
-static const int32_t  SCROLL_STEP = 2;   // kisebb OLED scroll lépés
-static const uint32_t OLED_SCROLL_MS_STATION = 280;
-static const uint32_t OLED_SCROLL_MS_ARTIST  = 240;
-static const uint32_t OLED_SCROLL_MS_TITLE   = 220;
-static const uint32_t OLED_SCROLL_MS_LOWBUF  = 420;  // ha fogy a puffer, szinte befagyasztjuk a scrollt, hogy az audio előnyt kapjon
+static const uint32_t MARQUEE_MS = 120;  // OLED-en ritkább marquee tick, hogy kisebb legyen a kijelzőterhelés
+static const int32_t  SCROLL_STEP = 2;   // közel azonos vizuális tempó, de kevesebb redraw
 #else
 static const uint32_t MARQUEE_MS = 80;   // marquee tick (smaller=faster)
 static const int32_t  SCROLL_STEP = 3;   // pixels per tick
@@ -883,11 +868,6 @@ static void logMemorySnapshot(const char* tag) {
 static uint32_t g_id3SeenAt = 0;
 static int32_t xStation = 0, xArtist = 0, xTitle = 0;
 static uint32_t lastMarquee = 0;
-#if defined(SSD1322)
-static uint32_t lastStationScrollMs = 0;
-static uint32_t lastArtistScrollMs  = 0;
-static uint32_t lastTitleScrollMs   = 0;
-#endif
 
 static uint32_t trackChangedAt = 0;
 static const uint32_t HOLD_MS = 1000;
@@ -1209,7 +1189,14 @@ static void drawOledPausedBadgeOverlay(bool force = false) {
   // Törlés csak akkor kell, ha korábban tényleg volt badge a képernyőn.
   if (!g_paused) {
     if (g_oledPauseBadgeLastState) {
-      if (clearW > 0 && clearH > 0) clearRect(clearX, clearY, clearW, clearH);
+      // Unpause után a badge helyét ne csak lokálisan töröljük,
+      // hanem az egész artist+title zónát rajzoljuk vissza.
+      // Erre azért van szükség, mert meta nélküli adóknál (pl. csak "LIVE")
+      // nem feltétlen jön azonnal új szövegfrissítés, így a badge maradéka
+      // külön redraw nélkül ott maradhatna a képernyőn.
+      const int fullClearY = (oledArtistRowY() > 0) ? oledArtistRowY() : 0;
+      const int fullClearH = (oledTitleRowY() + hTitleLine) - fullClearY;
+      if (fullClearH > 0) clearRect(0, fullClearY, W, fullClearH);
       sprArtist.pushSprite(0, oledArtistRowY());
       sprTitle.pushSprite(0, oledTitleRowY());
     }
@@ -1960,23 +1947,6 @@ static void updateMarquee() {
     g_forceRedrawText = false;
     return;
   }
-
-  // Állomásváltás után rövid ideig hagyjuk békén az OLED dinamikus redraw-jait,
-  // mert pont ilyenkor hajlamos az audio 2-3 mp-ig megakadni. A statikus UI már
-  // megvan, itt csak a scroll/VU/text churnt fogjuk vissza.
-  static bool s_oledUiQuietWasActive = false;
-  if (oledInStationSwitchUiQuietWindow()) {
-    s_oledUiQuietWasActive = true;
-    g_forceRedrawText = false;
-    return;
-  }
-  if (s_oledUiQuietWasActive) {
-    s_oledUiQuietWasActive = false;
-    g_forceRedrawText = true;
-    lastStationScrollMs = now;
-    lastArtistScrollMs = now;
-    lastTitleScrollMs = now;
-  }
 #endif
 
   // If we are in hold phase, only (re)draw when something actually changed.
@@ -2037,48 +2007,24 @@ static void updateMarquee() {
     return;
   }
 
-#if defined(SSD1322)
-  // OLED-en külön soronként throttoljuk a scrollt, mert a hosszú címek
-  // redraw-ja hallhatóan visszafoghatja az audio oldalt. Ha a puffer apad,
-  // még agresszívebben ritkítjuk a görgetést.
-  const bool lowBuffer = (g_bufferPercent > 0 && g_bufferPercent < 35);
-  const uint32_t stationScrollMs = lowBuffer ? OLED_SCROLL_MS_LOWBUF : OLED_SCROLL_MS_STATION;
-  const uint32_t artistScrollMs  = lowBuffer ? OLED_SCROLL_MS_LOWBUF : OLED_SCROLL_MS_ARTIST;
-  const uint32_t titleScrollMs   = lowBuffer ? OLED_SCROLL_MS_LOWBUF : OLED_SCROLL_MS_TITLE;
-
-  const bool scrollS = g_scrollStation;
-  const bool scrollA = g_scrollArtist;
-  const bool scrollT = g_scrollTitle;
-
-  const bool dueS = scrollS && (g_forceRedrawText || (now - lastStationScrollMs >= stationScrollMs));
-  const bool dueA = scrollA && (g_forceRedrawText || (now - lastArtistScrollMs  >= artistScrollMs));
-  const bool dueT = scrollT && (g_forceRedrawText || (now - lastTitleScrollMs   >= titleScrollMs));
-
-  if (!g_forceRedrawText && !dueS && !dueA && !dueT &&
-      g_lastStationDrawn == g_stationName &&
-      g_lastArtistDrawn  == g_artist &&
-      g_lastTitleDrawn   == g_title) {
-    return;
-  }
-#else
   // Throttle marquee tick
   if (now - lastMarquee < MARQUEE_MS) return;
   lastMarquee = now;
-
-  const bool scrollS = g_scrollStation;
-  const bool scrollA = g_scrollArtist;
-  const bool scrollT = g_scrollTitle;
-#endif
 
   // Cached widths/scroll flags (computed on text/layout changes)
   const int wS = g_wStation;
   const int wA = g_wArtist;
   const int wT = g_wTitle;
 
+
   // Marquee widths (base + separator). Used only when scrolling.
   const int wSM = g_wStationMarq;
   const int wAM = g_wArtistMarq;
   const int wTM = g_wTitleMarq;
+
+  const bool scrollS = g_scrollStation;
+  const bool scrollA = g_scrollArtist;
+  const bool scrollT = g_scrollTitle;
 
   // If nothing scrolls AND nothing changed, don't redraw at all.
   if (!g_forceRedrawText &&
@@ -2096,24 +2042,12 @@ static void updateMarquee() {
   } else if (!scrollS) {
     xS = g_centerXStation;
   } else {
-#if defined(SSD1322)
-    if (dueS) {
-      xStation -= SCROLL_STEP;
-      if (xStation <= -wSM) xStation += wSM;
-      lastStationScrollMs = now;
-    }
-#else
     xStation -= SCROLL_STEP;
+    // Seamless wrap (we draw two copies back-to-back)
     if (xStation <= -wSM) xStation += wSM;
-#endif
     xS = xStation;
   }
-#if defined(SSD1322)
-  const bool redrawStation = g_forceRedrawText || dueS || g_lastStationDrawn != g_stationName || g_lastStationX != xS;
-#else
-  const bool redrawStation = g_forceRedrawText || scrollS || g_lastStationDrawn != g_stationName || g_lastStationX != xS;
-#endif
-  if (redrawStation) {
+  if (g_forceRedrawText || scrollS || g_lastStationDrawn != g_stationName || g_lastStationX != xS) {
     if (scrollS) renderMarqueeLine(sprStation, g_mStation, xS, wSM);
     else         renderLine(sprStation, g_stationName, xS);
     #if defined(SSD1322)
@@ -2132,24 +2066,12 @@ static void updateMarquee() {
   } else if (!scrollA) {
     xA = g_centerXArtist;
   } else {
-#if defined(SSD1322)
-    if (dueA) {
-      xArtist -= SCROLL_STEP;
-      if (xArtist <= -wAM) xArtist += wAM;
-      lastArtistScrollMs = now;
-    }
-#else
     xArtist -= SCROLL_STEP;
+    // Seamless wrap (we draw two copies back-to-back)
     if (xArtist <= -wAM) xArtist += wAM;
-#endif
     xA = xArtist;
   }
-#if defined(SSD1322)
-  const bool redrawArtist = g_forceRedrawText || dueA || g_lastArtistDrawn != g_artist || g_lastArtistX != xA;
-#else
-  const bool redrawArtist = g_forceRedrawText || scrollA || g_lastArtistDrawn != g_artist || g_lastArtistX != xA;
-#endif
-  if (redrawArtist) {
+  if (g_forceRedrawText || scrollA || g_lastArtistDrawn != g_artist || g_lastArtistX != xA) {
     if (scrollA) renderMarqueeLine(sprArtist, g_mArtist, xA, wAM);
     else         renderLine(sprArtist, g_artist, xA);
     sprArtist.pushSprite(0, oledArtistRowY());
@@ -2167,24 +2089,12 @@ static void updateMarquee() {
   } else if (!scrollT) {
     xT = g_centerXTitle;
   } else {
-#if defined(SSD1322)
-    if (dueT) {
-      xTitle -= SCROLL_STEP;
-      if (xTitle <= -wTM) xTitle += wTM;
-      lastTitleScrollMs = now;
-    }
-#else
     xTitle -= SCROLL_STEP;
+    // Seamless wrap (we draw two copies back-to-back)
     if (xTitle <= -wTM) xTitle += wTM;
-#endif
     xT = xTitle;
   }
-#if defined(SSD1322)
-  const bool redrawTitle = g_forceRedrawText || dueT || g_lastTitleDrawn != g_title || g_lastTitleX != xT;
-#else
-  const bool redrawTitle = g_forceRedrawText || scrollT || g_lastTitleDrawn != g_title || g_lastTitleX != xT;
-#endif
-  if (redrawTitle) {
+  if (g_forceRedrawText || scrollT || g_lastTitleDrawn != g_title || g_lastTitleX != xT) {
     if (scrollT) renderMarqueeLine(sprTitle, g_mTitle, xT, wTM);
     else         renderLine(sprTitle, g_title, xT);
 #if defined(SSD1322)
@@ -3278,9 +3188,7 @@ state_meta_poll(mctx);
   if (g_mode == MODE_PLAY && (nowVu - lastVuMs >= vuUiIntervalMs)) {
     lastVuMs = nowVu;
 #if defined(SSD1322)
-    if (!oledInStationSwitchUiQuietWindow()) {
-      oledUpdateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
-    }
+    oledUpdateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
 #else
     ui_updateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
 #endif
