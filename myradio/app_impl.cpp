@@ -793,8 +793,12 @@ static uint32_t lastWifiDraw = 0;
 static const uint32_t WIFI_DRAW_MS = 2000;
 
 #if defined(SSD1322)
-static const uint32_t MARQUEE_MS = 120;  // OLED-en ritkább marquee tick, hogy kisebb legyen a kijelzőterhelés
-static const int32_t  SCROLL_STEP = 2;   // közel azonos vizuális tempó, de kevesebb redraw
+static const uint32_t MARQUEE_MS = 120;  // alap OLED marquee tick; a tényleges sorfrissítés lent külön, még jobban ritkított
+static const int32_t  SCROLL_STEP = 2;   // kisebb OLED scroll lépés
+static const uint32_t OLED_SCROLL_MS_STATION = 280;
+static const uint32_t OLED_SCROLL_MS_ARTIST  = 240;
+static const uint32_t OLED_SCROLL_MS_TITLE   = 220;
+static const uint32_t OLED_SCROLL_MS_LOWBUF  = 420;  // ha fogy a puffer, szinte befagyasztjuk a scrollt, hogy az audio előnyt kapjon
 #else
 static const uint32_t MARQUEE_MS = 80;   // marquee tick (smaller=faster)
 static const int32_t  SCROLL_STEP = 3;   // pixels per tick
@@ -868,6 +872,11 @@ static void logMemorySnapshot(const char* tag) {
 static uint32_t g_id3SeenAt = 0;
 static int32_t xStation = 0, xArtist = 0, xTitle = 0;
 static uint32_t lastMarquee = 0;
+#if defined(SSD1322)
+static uint32_t lastStationScrollMs = 0;
+static uint32_t lastArtistScrollMs  = 0;
+static uint32_t lastTitleScrollMs   = 0;
+#endif
 
 static uint32_t trackChangedAt = 0;
 static const uint32_t HOLD_MS = 1000;
@@ -2000,24 +2009,48 @@ static void updateMarquee() {
     return;
   }
 
+#if defined(SSD1322)
+  // OLED-en külön soronként throttoljuk a scrollt, mert a hosszú címek
+  // redraw-ja hallhatóan visszafoghatja az audio oldalt. Ha a puffer apad,
+  // még agresszívebben ritkítjuk a görgetést.
+  const bool lowBuffer = (g_bufferPercent > 0 && g_bufferPercent < 35);
+  const uint32_t stationScrollMs = lowBuffer ? OLED_SCROLL_MS_LOWBUF : OLED_SCROLL_MS_STATION;
+  const uint32_t artistScrollMs  = lowBuffer ? OLED_SCROLL_MS_LOWBUF : OLED_SCROLL_MS_ARTIST;
+  const uint32_t titleScrollMs   = lowBuffer ? OLED_SCROLL_MS_LOWBUF : OLED_SCROLL_MS_TITLE;
+
+  const bool scrollS = g_scrollStation;
+  const bool scrollA = g_scrollArtist;
+  const bool scrollT = g_scrollTitle;
+
+  const bool dueS = scrollS && (g_forceRedrawText || (now - lastStationScrollMs >= stationScrollMs));
+  const bool dueA = scrollA && (g_forceRedrawText || (now - lastArtistScrollMs  >= artistScrollMs));
+  const bool dueT = scrollT && (g_forceRedrawText || (now - lastTitleScrollMs   >= titleScrollMs));
+
+  if (!g_forceRedrawText && !dueS && !dueA && !dueT &&
+      g_lastStationDrawn == g_stationName &&
+      g_lastArtistDrawn  == g_artist &&
+      g_lastTitleDrawn   == g_title) {
+    return;
+  }
+#else
   // Throttle marquee tick
   if (now - lastMarquee < MARQUEE_MS) return;
   lastMarquee = now;
+
+  const bool scrollS = g_scrollStation;
+  const bool scrollA = g_scrollArtist;
+  const bool scrollT = g_scrollTitle;
+#endif
 
   // Cached widths/scroll flags (computed on text/layout changes)
   const int wS = g_wStation;
   const int wA = g_wArtist;
   const int wT = g_wTitle;
 
-
   // Marquee widths (base + separator). Used only when scrolling.
   const int wSM = g_wStationMarq;
   const int wAM = g_wArtistMarq;
   const int wTM = g_wTitleMarq;
-
-  const bool scrollS = g_scrollStation;
-  const bool scrollA = g_scrollArtist;
-  const bool scrollT = g_scrollTitle;
 
   // If nothing scrolls AND nothing changed, don't redraw at all.
   if (!g_forceRedrawText &&
@@ -2035,12 +2068,24 @@ static void updateMarquee() {
   } else if (!scrollS) {
     xS = g_centerXStation;
   } else {
+#if defined(SSD1322)
+    if (dueS) {
+      xStation -= SCROLL_STEP;
+      if (xStation <= -wSM) xStation += wSM;
+      lastStationScrollMs = now;
+    }
+#else
     xStation -= SCROLL_STEP;
-    // Seamless wrap (we draw two copies back-to-back)
     if (xStation <= -wSM) xStation += wSM;
+#endif
     xS = xStation;
   }
-  if (g_forceRedrawText || scrollS || g_lastStationDrawn != g_stationName || g_lastStationX != xS) {
+#if defined(SSD1322)
+  const bool redrawStation = g_forceRedrawText || dueS || g_lastStationDrawn != g_stationName || g_lastStationX != xS;
+#else
+  const bool redrawStation = g_forceRedrawText || scrollS || g_lastStationDrawn != g_stationName || g_lastStationX != xS;
+#endif
+  if (redrawStation) {
     if (scrollS) renderMarqueeLine(sprStation, g_mStation, xS, wSM);
     else         renderLine(sprStation, g_stationName, xS);
     #if defined(SSD1322)
@@ -2059,12 +2104,24 @@ static void updateMarquee() {
   } else if (!scrollA) {
     xA = g_centerXArtist;
   } else {
+#if defined(SSD1322)
+    if (dueA) {
+      xArtist -= SCROLL_STEP;
+      if (xArtist <= -wAM) xArtist += wAM;
+      lastArtistScrollMs = now;
+    }
+#else
     xArtist -= SCROLL_STEP;
-    // Seamless wrap (we draw two copies back-to-back)
     if (xArtist <= -wAM) xArtist += wAM;
+#endif
     xA = xArtist;
   }
-  if (g_forceRedrawText || scrollA || g_lastArtistDrawn != g_artist || g_lastArtistX != xA) {
+#if defined(SSD1322)
+  const bool redrawArtist = g_forceRedrawText || dueA || g_lastArtistDrawn != g_artist || g_lastArtistX != xA;
+#else
+  const bool redrawArtist = g_forceRedrawText || scrollA || g_lastArtistDrawn != g_artist || g_lastArtistX != xA;
+#endif
+  if (redrawArtist) {
     if (scrollA) renderMarqueeLine(sprArtist, g_mArtist, xA, wAM);
     else         renderLine(sprArtist, g_artist, xA);
     sprArtist.pushSprite(0, oledArtistRowY());
@@ -2082,12 +2139,24 @@ static void updateMarquee() {
   } else if (!scrollT) {
     xT = g_centerXTitle;
   } else {
+#if defined(SSD1322)
+    if (dueT) {
+      xTitle -= SCROLL_STEP;
+      if (xTitle <= -wTM) xTitle += wTM;
+      lastTitleScrollMs = now;
+    }
+#else
     xTitle -= SCROLL_STEP;
-    // Seamless wrap (we draw two copies back-to-back)
     if (xTitle <= -wTM) xTitle += wTM;
+#endif
     xT = xTitle;
   }
-  if (g_forceRedrawText || scrollT || g_lastTitleDrawn != g_title || g_lastTitleX != xT) {
+#if defined(SSD1322)
+  const bool redrawTitle = g_forceRedrawText || dueT || g_lastTitleDrawn != g_title || g_lastTitleX != xT;
+#else
+  const bool redrawTitle = g_forceRedrawText || scrollT || g_lastTitleDrawn != g_title || g_lastTitleX != xT;
+#endif
+  if (redrawTitle) {
     if (scrollT) renderMarqueeLine(sprTitle, g_mTitle, xT, wTM);
     else         renderLine(sprTitle, g_title, xT);
 #if defined(SSD1322)
