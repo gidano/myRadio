@@ -693,6 +693,17 @@ int    g_pendingBitrateK = 0;
 
 enum UIMode { MODE_PLAY, MODE_MENU };
 static UIMode g_mode = MODE_PLAY;
+
+#if defined(SSD1322)
+static constexpr uint32_t OLED_STATION_SWITCH_UI_QUIET_MS = 2500;
+static bool oledInStationSwitchUiQuietWindow() {
+  if (g_mode != MODE_PLAY) return false;
+  if (ui_stationSelectorActive()) return false;
+  if (g_connectRequestedAt == 0) return false;
+  const uint32_t dt = millis() - g_connectRequestedAt;
+  return dt < OLED_STATION_SWITCH_UI_QUIET_MS;
+}
+#endif
 // ------------------ Codec ikon ------------------ //
 #if defined(SSD1322)
 #ifndef CODEC_ICON_W
@@ -1948,6 +1959,23 @@ static void updateMarquee() {
     }
     g_forceRedrawText = false;
     return;
+  }
+
+  // Állomásváltás után rövid ideig hagyjuk békén az OLED dinamikus redraw-jait,
+  // mert pont ilyenkor hajlamos az audio 2-3 mp-ig megakadni. A statikus UI már
+  // megvan, itt csak a scroll/VU/text churnt fogjuk vissza.
+  static bool s_oledUiQuietWasActive = false;
+  if (oledInStationSwitchUiQuietWindow()) {
+    s_oledUiQuietWasActive = true;
+    g_forceRedrawText = false;
+    return;
+  }
+  if (s_oledUiQuietWasActive) {
+    s_oledUiQuietWasActive = false;
+    g_forceRedrawText = true;
+    lastStationScrollMs = now;
+    lastArtistScrollMs = now;
+    lastTitleScrollMs = now;
   }
 #endif
 
@@ -3250,7 +3278,9 @@ state_meta_poll(mctx);
   if (g_mode == MODE_PLAY && (nowVu - lastVuMs >= vuUiIntervalMs)) {
     lastVuMs = nowVu;
 #if defined(SSD1322)
-    oledUpdateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+    if (!oledInStationSwitchUiQuietWindow()) {
+      oledUpdateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+    }
 #else
     ui_updateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
 #endif
