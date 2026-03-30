@@ -1144,7 +1144,13 @@ void drawBottomBar() {
   bctx.bufferPercent = &g_bufferPercent;
   bctx.readBufferFilledFn = []() -> size_t { return audio.inBufferFilled(); };
   bctx.readBufferFreeFn = []() -> size_t { return audio.inBufferFree(); };
+  bctx.needStreamReconnect = &g_needStreamReconnect;
+  bctx.paused = &g_paused;
+  bctx.connectRequestedAtMs = &g_connectRequestedAt;
   bctx.refreshMs = 500;
+  bctx.startupGraceMs = 6000;
+  bctx.lowBufferHoldMs = 7000;
+  bctx.lowBufferPercent = 8;
   stream_watchdog_updateBuffer(bctx);
 
   ui_drawBottomBar(g_Volume, g_bufferPercent, (WiFi.status() == WL_CONNECTED));
@@ -2899,7 +2905,7 @@ drawStartupScreen(0);
 
   
 uint8_t phase = 0;
-while (true) {
+while (WiFi.status() != WL_CONNECTED) {
   serial_spiffs_poll();
   if (serial_spiffs_is_active()) {
     g_startupConnectScreenActive = false;
@@ -2914,11 +2920,6 @@ while (true) {
     return;
   }
 
-  const bool wifiConnected = (WiFi.status() == WL_CONNECTED);
-  const bool ipReady = wifiConnected && (WiFi.localIP() != IPAddress((uint32_t)0));
-  const bool gwReady = wifiConnected && (WiFi.gatewayIP() != IPAddress((uint32_t)0));
-  if (wifiConnected && ipReady && gwReady) break;
-
   g_startupConnectPhase = phase;
   drawStartupScreen(phase);
 
@@ -2930,7 +2931,7 @@ while (true) {
   drawStartupScreen(0);
   Serial.println(String("\n") + String(lang::boot_wifi_connected));
   Serial.println(lang::boot_wifi_stabilizing_log);
-  delay(1600);
+  delay(1200);
 
   startWebServer();
 
@@ -3176,7 +3177,23 @@ state_meta_poll(mctx);
   uint32_t nowBuf = millis();
   if (g_mode == MODE_PLAY && !ui_stationSelectorActive() && (nowBuf - lastBufferPollMs >= 2000)) {
     lastBufferPollMs = nowBuf;
-    stream_core_readBuffer(g_bufferFilled, g_bufferFree, g_bufferTotal, g_bufferPercent);
+    StreamWatchdogBufferCtx bctx{};
+    bctx.stationUrl = &g_stationUrl;
+    bctx.lastBufferCheckMs = &lastBufferCheck;
+    bctx.bufferFilled = &g_bufferFilled;
+    bctx.bufferFree = &g_bufferFree;
+    bctx.bufferTotal = &g_bufferTotal;
+    bctx.bufferPercent = &g_bufferPercent;
+    bctx.readBufferFilledFn = []() -> size_t { return audio.inBufferFilled(); };
+    bctx.readBufferFreeFn = []() -> size_t { return audio.inBufferFree(); };
+    bctx.needStreamReconnect = &g_needStreamReconnect;
+    bctx.paused = &g_paused;
+    bctx.connectRequestedAtMs = &g_connectRequestedAt;
+    bctx.refreshMs = 0;
+    bctx.startupGraceMs = 6000;
+    bctx.lowBufferHoldMs = 7000;
+    bctx.lowBufferPercent = 8;
+    stream_watchdog_updateBuffer(bctx);
 #if !defined(SSD1322)
     updateBufferIndicatorOnly();
 #endif
