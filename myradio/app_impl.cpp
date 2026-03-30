@@ -123,7 +123,6 @@ static String* uiRegularFontPtr(int preferredSize);
 static String* uiSemiboldFontPtr(int preferredSize);
 static const String& uiRegularFont(int preferredSize);
 static const String& uiSemiboldFont(int preferredSize);
-static void updateMarquee();
 bool app_isMenuMode();
 void app_exitMenuRedrawPlayUI();
 bool startPlaybackCurrent(bool allowReloadPlaylist);
@@ -134,12 +133,6 @@ static void onTouchTap(int x, int y);
 static void onTouchLongPress(int x, int y);
 void drawBottomBar();
 static void drawOledIpLine();
-static void drawMenuScreen();
-static void drawStaticUI();
-#if defined(SSD1322)
-static void oledRegisterActivity(bool redraw = true);
-static void oledIdleProtectionTick();
-#endif
 #if defined(SSD1322)
 static void oledUpdateVolumeOnly();
 
@@ -309,15 +302,6 @@ static void drawGrayFromRgb565Bitmap(int x, int y, int w, int h, const uint16_t*
 static bool g_tftReady = false;
 static bool g_touchEnabled = (TOUCH_MODEL != TOUCH_NONE);
 static InputTouchRuntimeState g_touchState;
-#if defined(SSD1322)
-static uint32_t g_oledLastActivityMs = 0;
-static bool g_oledDimmed = false;
-static bool g_oledDisplayOff = false;
-static constexpr uint32_t OLED_DIM_TIMEOUT_MS = 120000UL;
-static constexpr uint32_t OLED_OFF_TIMEOUT_MS = 300000UL;
-static constexpr uint8_t OLED_BRIGHTNESS_NORMAL = 255;
-static constexpr uint8_t OLED_BRIGHTNESS_DIM = 48;
-#endif
 
 static void initDisplayBasic() {
   if (g_tftReady) return;
@@ -325,68 +309,12 @@ static void initDisplayBasic() {
   tft.init();
   tft.setRotation(TFT_ROTATION);      // a Lovyan_config.h-ban állítod be
   tft.setBrightness(255);
-#if defined(SSD1322)
-  tft.setDisplayPower(true);
-  g_oledLastActivityMs = millis();
-  g_oledDimmed = false;
-  g_oledDisplayOff = false;
-#endif
   tft.fillScreen(TFT_BLACK);
 #if defined(SSD1322)
   ssd1322_draw_debug_boot(tft);
 #endif
   g_tftReady = true;
 }
-
-#if defined(SSD1322)
-static void oledRedrawCurrentScreen() {
-  tft.fillScreen(TFT_BLACK);
-  if (app_isMenuMode()) {
-    drawMenuScreen();
-  } else {
-    drawStaticUI();
-    updateMarquee();
-    oledInvalidateVuMeter();
-    oledDrawVuMeter(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
-  }
-}
-
-static void oledRegisterActivity(bool redraw) {
-  if (!g_tftReady) return;
-  g_oledLastActivityMs = millis();
-
-  const bool wasOff = g_oledDisplayOff;
-  if (g_oledDisplayOff) {
-    tft.setDisplayPower(true);
-    g_oledDisplayOff = false;
-  }
-  if (g_oledDimmed || wasOff) {
-    tft.setBrightness(OLED_BRIGHTNESS_NORMAL);
-    g_oledDimmed = false;
-  }
-  if (wasOff && redraw) {
-    oledRedrawCurrentScreen();
-  }
-}
-
-static void oledIdleProtectionTick() {
-  if (!g_tftReady) return;
-  if (g_startupConnectScreenActive) return;
-
-  const uint32_t now = millis();
-  const uint32_t idleMs = now - g_oledLastActivityMs;
-
-  if (!g_oledDisplayOff && idleMs >= OLED_OFF_TIMEOUT_MS) {
-    tft.setDisplayPower(false);
-    g_oledDisplayOff = true;
-    return;
-  }
-  if (!g_oledDimmed && idleMs >= OLED_DIM_TIMEOUT_MS) {
-    tft.setBrightness(OLED_BRIGHTNESS_DIM);
-    g_oledDimmed = true;
-  }
-}
-#endif
 
 static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   initDisplayBasic();
@@ -836,10 +764,6 @@ int g_bufferPercent = 0;
 // UI-callback wrappers (input_rotary / net_server expects void() callbacks)
 // Keep these thin wrappers in app_impl to avoid modifying callback signatures.
 static void updateVolumeOnly() {
-#if defined(SSD1322)
-  oledRegisterActivity();
-#endif
-
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
 #if defined(SSD1322)
   oledUpdateVolumeOnly();
@@ -1229,6 +1153,63 @@ void drawBottomBar() {
 
 
 // ------------------ UI ------------------ //
+#if defined(SSD1322)
+static int oledArtistRowY();
+static int oledTitleRowY();
+static bool g_oledPauseBadgeDirty = true;
+static bool g_oledPauseBadgeLastState = false;
+#endif
+#if defined(SSD1322)
+static void drawOledPausedBadgeOverlay(bool force = false) {
+  if (!force && !g_oledPauseBadgeDirty && g_oledPauseBadgeLastState == g_paused) return;
+
+  const int leftBound = CODEC_ICON_W + 1;
+  const int rightBound = W - OLED_CORNER_LOGO_W - 1;
+  if (rightBound <= leftBound) return;
+
+  applyRegularUiFont(tft, 9);
+  const String txt = text_fix(lang::ui_paused);
+  const int th = tft.fontHeight();
+  const int tw = tft.textWidth(txt.c_str());
+
+  const int padX = 4;
+  const int padY = 2;
+  const int bw = tw + padX * 2;
+  const int bh = th + padY * 2;
+  const int bx = W - bw - 4;
+  int by = yArtist + ((yTitle + hTitleLine - yArtist) - bh) / 2;
+  if (by < 0) by = 0;
+
+  const int clearX = bx - 1;
+  const int clearY = (by > 1) ? (by - 1) : 0;
+  const int clearW = min(W - clearX, bw + 3);
+  const int clearH = min(H - clearY, bh + 3);
+
+  // Ha nincs pause aktív, normál full redraw közben ne töröljük ki a title végét.
+  // Törlés csak akkor kell, ha korábban tényleg volt badge a képernyőn.
+  if (!g_paused) {
+    if (g_oledPauseBadgeLastState) {
+      if (clearW > 0 && clearH > 0) clearRect(clearX, clearY, clearW, clearH);
+      sprArtist.pushSprite(0, oledArtistRowY());
+      sprTitle.pushSprite(0, oledTitleRowY());
+    }
+    g_oledPauseBadgeLastState = false;
+    g_oledPauseBadgeDirty = false;
+    return;
+  }
+
+  if (clearW > 0 && clearH > 0) clearRect(clearX, clearY, clearW, clearH);
+  tft.fillRect(bx, by, bw, bh, OLED_DARKER_GREY);
+  tft.drawRect(bx, by, bw, bh, OLED_MUTED_GREY);
+  tft.setTextColor(TFT_WHITE, OLED_DARKER_GREY);
+  tft.setTextDatum(top_left);
+  tft.drawString(txt, bx + padX, by + padY);
+
+  g_oledPauseBadgeLastState = true;
+  g_oledPauseBadgeDirty = false;
+}
+#endif
+
 static void drawStreamLabelLine() {
 #if defined(SSD1322)
   applyRegularUiFont(tft, 9);
@@ -1243,12 +1224,17 @@ static void drawStreamLabelLine() {
   int lineH = th + 1;
 
 #if defined(SSD1322)
-  // OLED-en csak a stream sor saját sávját töröljük, így nem maradnak ott kosz karakterek,
-  // de az állomásnév alsó pixeleibe sem törlünk bele.
+  // OLED-en a stream sor területét és a lejjebb helyezett pause badge helyét is
+  // teljesen töröljük, hogy ki/be kapcsoláskor ne maradjon ott semmi.
   const int leftBound = CODEC_ICON_W + 1;
   const int rightBound = W - OLED_CORNER_LOGO_W - 1;
-  // Csak a stream sor saját sávját töröljük.
-  if (rightBound > leftBound) clearRect(leftBound, lineY, rightBound - leftBound, lineH);
+  const int clearY = (lineY > 1) ? (lineY - 1) : 0;
+  const int clearH = lineH + 4;
+  if (rightBound > leftBound) clearRect(leftBound, clearY, rightBound - leftBound, clearH);
+
+  const int badgeClearY = (yArtist > 1) ? (yArtist - 1) : 0;
+  const int badgeClearH = (yTitle - yArtist) + hTitleLine + 3;
+  if (rightBound > leftBound && badgeClearH > 0) clearRect(leftBound, badgeClearY, rightBound - leftBound, badgeClearH);
 #else
   clearRect(0, lineY - 1, W, lineH + 2);
 #endif
@@ -1286,12 +1272,14 @@ static void drawStreamLabelLine() {
   tft.print(line);
 #endif
 
+#if defined(SSD1322)
+  g_oledPauseBadgeDirty = true;
+#else
   // Paused badge (jobb oldalon), ha kell
   if (!g_paused) return;
 
   String txt = text_fix(lang::ui_paused);
   int tw = tft.textWidth(txt.c_str());
-
   int padX = 10;
   int badgeH = lineH;
 
@@ -1317,6 +1305,7 @@ static void drawStreamLabelLine() {
 
   tft.drawRoundRect(bx, by, bw, bh, 6, TFT_YELLOW);
   tft.drawFastHLine(bx + 6, by + bh - 1, bw - 12, TFT_YELLOW);
+#endif
 }
 
 static AudioControlCtx makeAudioControlCtx() {
@@ -1338,11 +1327,19 @@ static AudioControlCtx makeAudioControlCtx() {
 static void setPaused(bool paused) {
   AudioControlCtx ctx = makeAudioControlCtx();
   audio_control_setPaused(ctx, paused);
+  g_forceRedrawText = true;
+#if defined(SSD1322)
+  g_oledPauseBadgeDirty = true;
+#endif
 }
 
 void togglePaused() {
   AudioControlCtx ctx = makeAudioControlCtx();
   audio_control_togglePaused(ctx);
+  g_forceRedrawText = true;
+#if defined(SSD1322)
+  g_oledPauseBadgeDirty = true;
+#endif
 }
 
 // ---------- M3U playlist helpers ----------
@@ -1910,6 +1907,8 @@ static void drawStaticUI() {
   sprArtist.pushSprite(0, oledArtistRowY());
 #if defined(SSD1322)
   sprTitle.pushSprite(0, oledTitleRowY());
+  g_oledPauseBadgeDirty = true;
+  drawOledPausedBadgeOverlay(true);
 #else
   sprTitle.pushSprite(0, yTitle);
 #endif
@@ -1930,6 +1929,18 @@ static void updateMarquee() {
     mTitle   = g_title;
   }
 
+#if defined(SSD1322)
+  // OLED-en pause alatt fagyasszuk be a marquee-t és a szövegsorok újrarajzolását,
+  // különben a hosszú title tovább léptet, felülírja a badge területét,
+  // a badge újra-újrarajzolódik és villog.
+  if (g_paused) {
+    if (g_oledPauseBadgeDirty || g_oledPauseBadgeLastState != g_paused) {
+      drawOledPausedBadgeOverlay();
+    }
+    g_forceRedrawText = false;
+    return;
+  }
+#endif
 
   // If we are in hold phase, only (re)draw when something actually changed.
   if (holdPhase) {
@@ -1963,6 +1974,9 @@ static void updateMarquee() {
       if (g_scrollArtist) renderMarqueeLine(sprArtist, g_mArtist, xA, g_wArtistMarq);
       else                renderLine(sprArtist, g_artist, xA);
       sprArtist.pushSprite(0, oledArtistRowY());
+#if defined(SSD1322)
+      g_oledPauseBadgeDirty = true;
+#endif
       g_lastArtistDrawn = g_artist;
       g_lastArtistX = xA;
     }
@@ -1971,6 +1985,7 @@ static void updateMarquee() {
       else               renderLine(sprTitle, g_title, xT);
 #if defined(SSD1322)
       sprTitle.pushSprite(0, oledTitleRowY());
+      g_oledPauseBadgeDirty = true;
 #else
       sprTitle.pushSprite(0, yTitle);
 #endif
@@ -1978,6 +1993,9 @@ static void updateMarquee() {
       g_lastTitleX = xT;
     }
 
+#if defined(SSD1322)
+    if (g_oledPauseBadgeDirty || g_oledPauseBadgeLastState != g_paused) drawOledPausedBadgeOverlay();
+#endif
     g_forceRedrawText = false;
     return;
   }
@@ -2050,6 +2068,9 @@ static void updateMarquee() {
     if (scrollA) renderMarqueeLine(sprArtist, g_mArtist, xA, wAM);
     else         renderLine(sprArtist, g_artist, xA);
     sprArtist.pushSprite(0, oledArtistRowY());
+#if defined(SSD1322)
+    g_oledPauseBadgeDirty = true;
+#endif
     g_lastArtistDrawn = g_artist;
     g_lastArtistX = xA;
   }
@@ -2071,6 +2092,7 @@ static void updateMarquee() {
     else         renderLine(sprTitle, g_title, xT);
 #if defined(SSD1322)
     sprTitle.pushSprite(0, oledTitleRowY());
+    g_oledPauseBadgeDirty = true;
 #else
     sprTitle.pushSprite(0, yTitle);
 #endif
@@ -2078,6 +2100,9 @@ static void updateMarquee() {
     g_lastTitleX = xT;
   }
 
+#if defined(SSD1322)
+  if (g_oledPauseBadgeDirty || g_oledPauseBadgeLastState != g_paused) drawOledPausedBadgeOverlay();
+#endif
   g_forceRedrawText = false;
 }
 
@@ -2189,10 +2214,6 @@ static void drawOledMenuOverlay() {
 #endif
 
 static void redrawMenuCounterAndList() {
-#if defined(SSD1322)
-  oledRegisterActivity();
-#endif
-
   if (g_mode != MODE_MENU) return;
 
 #if defined(SSD1322)
@@ -2442,10 +2463,6 @@ static int touchMenuRowFromY(int y) {
 }
 
 static void onTouchTap(int x, int y) {
-#if defined(SSD1322)
-  oledRegisterActivity();
-#endif
-
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
 
@@ -2484,10 +2501,6 @@ static void onTouchTap(int x, int y) {
 }
 
 static void onTouchDrag(int startX, int startY, int x, int y) {
-#if defined(SSD1322)
-  oledRegisterActivity();
-#endif
-
   if (g_mode != MODE_MENU || g_stationCount <= 0) return;
   if (!touchIsInMenuListZone(startY)) return;
   if (x < 0 || y < 0) return;
@@ -2517,10 +2530,6 @@ static void onTouchDrag(int startX, int startY, int x, int y) {
 }
 
 static void onTouchLongPress(int x, int y) {
-#if defined(SSD1322)
-  oledRegisterActivity();
-#endif
-
   (void)x; (void)y;
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
@@ -2528,10 +2537,6 @@ static void onTouchLongPress(int x, int y) {
 }
 
 static void onButtonLongPress() {
-#if defined(SSD1322)
-  oledRegisterActivity();
-#endif
-
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
 
@@ -2550,10 +2555,6 @@ static void onButtonLongPress() {
 }
 
 static void onButtonShortPress() {
-#if defined(SSD1322)
-  oledRegisterActivity();
-#endif
-
   if (g_mode == MODE_PLAY) {
     togglePaused();
   } else if (g_mode == MODE_MENU) {
@@ -2850,9 +2851,7 @@ void app_setup() {
 }
 
 drawStartupScreen(0);
-#if defined(SSD1322)
-  g_oledLastActivityMs = millis();
-#endif
+
 
   WiFi.setSleep(false);
   esp_wifi_set_ps(WIFI_PS_NONE);
@@ -3195,10 +3194,6 @@ state_meta_poll(mctx);
     lastBottomUiTickMs = nowBottomUi;
     ui_updateWifiIconOnly();
   }
-#endif
-
-#if defined(SSD1322)
-  oledIdleProtectionTick();
 #endif
 
   delay(1);
