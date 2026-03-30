@@ -12,6 +12,8 @@
 static const char* WIFI_LAST_SSID_FILE = "/wifi.last";
 static const uint32_t WIFI_CONNECT_TIMEOUT_STARTUP_MS   = 5000;
 static const uint32_t WIFI_CONNECT_TIMEOUT_RECONNECT_MS = 5000;
+static const uint32_t WIFI_CONNECT_READY_TIMEOUT_MS     = 3500;
+static const uint32_t WIFI_CONNECT_READY_STABLE_MS      = 700;
 static const uint32_t WIFI_RECONNECT_SETTLE_MS          = 1500;
 static const uint32_t WIFI_RECONNECT_NEXT_SSID_MS       = 250;
 static const uint32_t WIFI_RECONNECT_BACKOFF_MIN_MS     = 3000;
@@ -147,6 +149,33 @@ static void resetReconnectState() {
   g_currentAttemptSsid = "";
 }
 
+
+static bool waitForConnectionReady(uint32_t timeoutMs, uint32_t stableMs) {
+  const uint32_t t0 = millis();
+  uint32_t stableFrom = 0;
+
+  while ((millis() - t0) < timeoutMs) {
+    if (WiFi.status() == WL_CONNECTED) {
+      const IPAddress ip = WiFi.localIP();
+      const IPAddress gw = WiFi.gatewayIP();
+      const bool haveIp = (ip != IPAddress((uint32_t)0));
+      const bool haveGw = (gw != IPAddress((uint32_t)0));
+
+      if (haveIp && haveGw) {
+        if (stableFrom == 0) stableFrom = millis();
+        if ((millis() - stableFrom) >= stableMs) return true;
+      } else {
+        stableFrom = 0;
+      }
+    } else {
+      stableFrom = 0;
+    }
+    delay(50);
+  }
+
+  return false;
+}
+
 static void markConnectedCommon(const String& ssid, int credIndex, bool restoredCallback) {
   g_activeSsid = ssid.length() ? ssid : WiFi.SSID();
   g_currentAttemptSsid = "";
@@ -204,13 +233,19 @@ static bool connectWiFi(const String& ssid, const String& pass, uint32_t timeout
   while (millis() - t0 < timeoutMs) {
     wl_status_t st = WiFi.status();
     if (st == WL_CONNECTED) {
-      markConnectedCommon(ssid, -1, false);
-      return true;
+      if (waitForConnectionReady(WIFI_CONNECT_READY_TIMEOUT_MS, WIFI_CONNECT_READY_STABLE_MS)) {
+        markConnectedCommon(ssid, -1, false);
+        return true;
+      }
+      break;
     }
     delay(150);
   }
 
-  Serial.printf("[WiFi] Connect timeout. status=%d\n", (int)WiFi.status());
+  Serial.printf("[WiFi] Connect timeout/unstable. status=%d ip=%s gw=%s\n",
+                (int)WiFi.status(),
+                WiFi.localIP().toString().c_str(),
+                WiFi.gatewayIP().toString().c_str());
   return false;
 }
 
