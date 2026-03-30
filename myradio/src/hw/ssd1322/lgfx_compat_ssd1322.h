@@ -79,7 +79,8 @@ class LGFX_Device : public Jamis_SSD1322 {
   LGFX_Device();
 
   void init();
-  void setBrightness(uint8_t) {}
+  void setBrightness(uint8_t value);
+  void setDisplayPower(bool on) { Jamis_SSD1322::setDisplayPower(on); }
   void loadFont(const char* name);
   void unloadFont();
   void setFont(const GFXfont* f);

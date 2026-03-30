@@ -58,7 +58,8 @@ bool Jamis_SSD1322::begin(bool reset, bool periphBegin) {
   ssd1322_command1(0xB5); ssd1322_data1(0x00);
   ssd1322_command1(0xAB); ssd1322_data1(0x01);
   ssd1322_command1(0xB4); ssd1322_data1(0xA0); ssd1322_data1(0xB5);
-  ssd1322_command1(0xC1); ssd1322_data1(0x7F);
+  contrastValue = 0x7F;
+  ssd1322_command1(0xC1); ssd1322_data1(contrastValue);
   ssd1322_command1(0xC7); ssd1322_data1(0x0F);
   ssd1322_command1(0xB9);
   ssd1322_command1(0xB1); ssd1322_data1(0xE2);
@@ -69,6 +70,7 @@ bool Jamis_SSD1322::begin(bool reset, bool periphBegin) {
   ssd1322_command1(0xA6);
   ssd1322_command1(0xA9);
   ssd1322_command1(0xAF);
+  displayPowered = true;
   TRANSACTION_END;
   delay(120);
 
@@ -144,6 +146,22 @@ void Jamis_SSD1322::display() {
   ssd1322_command1(0x5C);
   SSD1322_MODE_DATA;
   for (int i = 0; i < WIDTH * HEIGHT / 2; ++i) SPIwrite(buffer[i]);
+  TRANSACTION_END;
+}
+
+
+void Jamis_SSD1322::setContrast(uint8_t contrast) {
+  contrastValue = contrast;
+  TRANSACTION_START;
+  ssd1322_command1(0xC1);
+  ssd1322_data1(contrastValue);
+  TRANSACTION_END;
+}
+
+void Jamis_SSD1322::setDisplayPower(bool on) {
+  displayPowered = on;
+  TRANSACTION_START;
+  ssd1322_command1(on ? SSD1322_DISPLAYON : SSD1322_DISPLAYOFF);
   TRANSACTION_END;
 }
 

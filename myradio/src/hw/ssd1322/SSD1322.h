@@ -33,6 +33,8 @@ class Jamis_SSD1322 : public Adafruit_GFX {
   void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) override;
   void ssd1322_command(uint8_t c);
   void invertDisplay(bool flag);
+  void setContrast(uint8_t contrast);
+  void setDisplayPower(bool on);
   uint8_t* getBuffer() { return buffer; }
 
  private:
@@ -46,4 +48,6 @@ class Jamis_SSD1322 : public Adafruit_GFX {
   uint8_t* buffer;
   int8_t dcPin, csPin, rstPin;
   SPISettings spiSettings;
+  uint8_t contrastValue = 0x7F;
+  bool displayPowered = true;
 };
