@@ -12,7 +12,7 @@ The application can download the current playlist **based on the radio's IP addr
 
 ## Elérhetőség
 
-[myRadio Editor](https://github.com/gidano/myRadio-Editor)
+[myRadio Stations Editor](https://github.com/gidano/myRadio-Stations-Editor)
 
 ---
 
