@@ -11,20 +11,26 @@ extern Audio audio;
 
 namespace {
 
-Stream* g_serial = nullptr;
+Stream* g_serialPrimary = nullptr;
+Stream* g_serialSecondary = nullptr;
+Stream* g_replySerial = nullptr;
 bool g_active = false;
-String g_rxLine;
+String g_rxLinePrimary;
+String g_rxLineSecondary;
 
 File g_writeFile;
 String g_writePath;
 size_t g_writeExpected = 0;
 size_t g_writeReceived = 0;
 bool g_writeInProgress = false;
+size_t g_writeSinceFlush = 0;
+bool g_maintenanceCleanupPending = false;
 
 void resetWriteState(bool removePartial) {
   if (g_writeFile) g_writeFile.close();
   if (removePartial && g_writePath.length()) SPIFFS.remove(g_writePath);
   g_writeInProgress = false;
+  g_writeSinceFlush = 0;
   g_writeExpected = 0;
   g_writeReceived = 0;
   g_writePath = "";
@@ -61,10 +67,10 @@ void ensureParentDirs(const String& fullPath) {
 }
 
 void sendLine(const String& s) {
-  if (!g_serial) return;
-  g_serial->print("MRSPIFS|");
-  g_serial->println(s);
-  g_serial->flush();
+  if (!g_replySerial) return;
+  g_replySerial->print("MRSPIFS|");
+  g_replySerial->println(s);
+  g_replySerial->flush();
 }
 
 void sendOk(const String& cmd, const String& msg = "") {
@@ -135,10 +141,8 @@ bool b64Decode(const String& in, uint8_t*& outBuf, size_t& outLen) {
   return true;
 }
 
-void stopForMaintenance() {
+void performDeferredMaintenanceCleanup() {
   audio.stopSong();
-  WiFi.disconnect(true, false);
-  delay(50);
 }
 
 void handleList() {
@@ -172,7 +176,7 @@ void handleRead(const String& rawPath) {
   }
 
   sendLine("READ_BEGIN|" + path + "|" + String((uint32_t)f.size()));
-  uint8_t buf[384];
+  uint8_t buf[1024];
   while (f.available()) {
     const size_t n = f.read(buf, sizeof(buf));
     if (!n) break;
@@ -239,8 +243,11 @@ void handleWriteData(const String& b64) {
       return;
     }
     g_writeReceived += written;
-    g_writeFile.flush();
-    delay(1);
+    g_writeSinceFlush += written;
+    if (g_writeSinceFlush >= 4096 || g_writeReceived == g_writeExpected) {
+      g_writeFile.flush();
+      g_writeSinceFlush = 0;
+    }
   } else if (decoded) {
     free(decoded);
   }
@@ -307,15 +314,20 @@ void handleExists(const String& rawPath) {
   sendOk("EXISTS", SPIFFS.exists(path) ? "1" : "0");
 }
 
-void processCommand(const String& line) {
+void processCommand(Stream* source, const String& line) {
   if (!line.length()) return;
+  g_replySerial = source;
+
+  if (line == "MRSPIFS:BEGIN") {
+    if (!g_active) {
+      g_active = true;
+      g_maintenanceCleanupPending = true;
+    }
+    sendOk("BEGIN", "maintenance_active");
+    return;
+  }
 
   if (!g_active) {
-    if (line == "MRSPIFS:BEGIN") {
-      g_active = true;
-      stopForMaintenance();
-      sendOk("BEGIN", "maintenance_active");
-    }
     return;
   }
 
@@ -346,29 +358,45 @@ void processCommand(const String& line) {
   sendErr("CMD", "unknown_command");
 }
 
+void pollOne(Stream* serial, String& rxLine) {
+  if (!serial) return;
+
+  while (serial->available() > 0) {
+    const char ch = (char)serial->read();
+    if (ch == '\r') continue;
+    if (ch == '\n') {
+      String line = rxLine;
+      rxLine = "";
+      line.trim();
+      processCommand(serial, line);
+      continue;
+    }
+    if (rxLine.length() < 2048) rxLine += ch;
+  }
+}
+
 } // namespace
 
-void serial_spiffs_begin(Stream& serial) {
-  g_serial = &serial;
+void serial_spiffs_begin(Stream& primarySerial, Stream* secondarySerial) {
+  g_serialPrimary = &primarySerial;
+  g_serialSecondary = secondarySerial;
+  g_replySerial = &primarySerial;
   g_active = false;
-  g_rxLine = "";
+  g_maintenanceCleanupPending = false;
+  g_rxLinePrimary = "";
+  g_rxLineSecondary = "";
   resetWriteState(false);
 }
 
 void serial_spiffs_poll() {
-  if (!g_serial) return;
+  if (!g_serialPrimary && !g_serialSecondary) return;
 
-  while (g_serial->available() > 0) {
-    const char ch = (char)g_serial->read();
-    if (ch == '\r') continue;
-    if (ch == '\n') {
-      String line = g_rxLine;
-      g_rxLine = "";
-      line.trim();
-      processCommand(line);
-      continue;
-    }
-    if (g_rxLine.length() < 2048) g_rxLine += ch;
+  pollOne(g_serialPrimary, g_rxLinePrimary);
+  pollOne(g_serialSecondary, g_rxLineSecondary);
+
+  if (g_active && g_maintenanceCleanupPending) {
+    g_maintenanceCleanupPending = false;
+    performDeferredMaintenanceCleanup();
   }
 }
 
