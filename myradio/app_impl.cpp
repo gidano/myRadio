@@ -2815,8 +2815,13 @@ void app_setup() {
   }
 
 
-  Serial.begin(115200);
+  Serial.begin(460800);
+#if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT
+  Serial0.begin(460800);
+  serial_spiffs_begin(Serial, &Serial0);
+#else
   serial_spiffs_begin(Serial);
+#endif
   ensureLogMutex();
   reserveHotStrings();
   logMemorySnapshot("boot");
