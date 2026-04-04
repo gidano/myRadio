@@ -4,11 +4,12 @@
 struct Station {
   String name;
   String url;
+  String logoName;
 };
 
 static const int MAX_STATIONS = 120;
 
-bool station_parseLine(const String& lineRaw, String& name, String& url);
+bool station_parseLine(const String& lineRaw, String& name, String& url, String& logoName);
 int station_findByUrlOrName(const Station* stations, int stationCount, const String& stationUrl, const String& stationName);
 void station_loadFromSPIFFS(
   Station* stations,

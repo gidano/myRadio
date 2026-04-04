@@ -1,20 +1,35 @@
 #include "station_store.h"
 #include <SPIFFS.h>
 
-bool station_parseLine(const String& lineRaw, String& name, String& url) {
+bool station_parseLine(const String& lineRaw, String& name, String& url, String& logoName) {
   String line = lineRaw;
   line.trim();
   if (line.length() == 0) return false;
   if (line[0] == '#') return false;
 
-  int sep = line.indexOf('\t');
-  if (sep < 0) sep = line.indexOf('|');
-  if (sep < 0) return false;
+  int sep1 = line.indexOf('\t');
+  if (sep1 < 0) sep1 = line.indexOf('|');
+  if (sep1 < 0) return false;
 
-  name = line.substring(0, sep);
-  url = line.substring(sep + 1);
+  int sep2 = line.indexOf('\t', sep1 + 1);
+  if (sep2 < 0) sep2 = line.indexOf('|', sep1 + 1);
+
+  name = line.substring(0, sep1);
+  if (sep2 >= 0) {
+    url = line.substring(sep1 + 1, sep2);
+    logoName = line.substring(sep2 + 1);
+  } else {
+    url = line.substring(sep1 + 1);
+    logoName = "nologo";
+  }
+
   name.trim();
   url.trim();
+  logoName.trim();
+  logoName.replace("\r", "");
+  logoName.replace("\n", "");
+  if (logoName.length() == 0) logoName = "nologo";
+
   return (name.length() && url.length());
 }
 
@@ -46,10 +61,11 @@ void station_loadFromSPIFFS(
 
   while (f.available() && stationCount < maxStations) {
     String line = f.readStringUntil('\n');
-    String name, url;
-    if (station_parseLine(line, name, url)) {
+    String name, url, logoName;
+    if (station_parseLine(line, name, url, logoName)) {
       stations[stationCount].name = name;
       stations[stationCount].url = url;
+      stations[stationCount].logoName = logoName;
       stationCount++;
     }
   }
@@ -83,9 +99,23 @@ bool station_saveToSPIFFS(const Station* stations, int stationCount) {
   for (int i = 0; i < stationCount; i++) {
     String name = stations[i].name;
     name.replace('\t', ' ');
+
+    String url = stations[i].url;
+    url.replace("\n", "");
+    url.replace("\r", "");
+
+    String logoName = stations[i].logoName;
+    logoName.trim();
+    logoName.replace("\t", " ");
+    logoName.replace("\n", " ");
+    logoName.replace("\r", " ");
+    if (logoName.length() == 0) logoName = "nologo";
+
     f.print(name);
     f.print("\t");
-    f.println(stations[i].url);
+    f.print(url);
+    f.print("\t");
+    f.println(logoName);
   }
 
   f.close();
