@@ -11,7 +11,7 @@ BITHANG YOO RÁDIÓ	https://s03.diazol.hu:35162/stream	nologo
 BLUES WAVE	https://blueswave.radio:8000/blueswave	blueswave
 COOL FM	https://mediagw.e-tiger.net:443/stream/cfmhq	coolfm
 CREEDENCE CLEARWATER REVIVAL	https://nl4.mystreaming.net/er/creedence/icecast.audio	nologo
-CSUKÁS MESERÁDIÓ	https://mr-stream.connectmedia.hu/4611/mr10.mp3	csukasmesereadio
+CSUKÁS MESERÁDIÓ	https://mr-stream.connectmedia.hu/4611/mr10.mp3	csukasmeseradio
 DANCEFM 89.5	http://edge126.rdsnet.ro:84/profm/dancefm.mp3	dancefm
 DANUBIUS RÁDIÓ	https://stream.danubiusradio.hu/danubius_192k	danubius
 DANUBIUS RÁDIÓ (HI-FI)	https://danubiusradio.hu/live_HiFi.mp3	danubius
@@ -42,7 +42,7 @@ PANNONIA	https://ip157.ozelip.com/8130/stream	nologo
 PARKFM	https://s03.diazol.hu:7142/stream.mp3	parkfm
 PC/ZENE - KEVERT	http://192.168.31.101:8000/playlist_shuffle.m3u	nologo
 PETŐFI RÁDIÓ	https://icast.connectmedia.hu/4738/mr2.mp3	petofi
-PINK FLOYD - VIRGIN RADIO ROCKSTAR	http://icy.unitedradio.it/VirginRogerWaters.mp3	nologo
+PINK FLOYD - VIRGIN RADIO ROCKSTAR	http://icy.unitedradio.it/VirginRogerWaters.mp3	virginradiouk
 POPTARISZNYA	http://adas.poptarisznya.hu:8200/live.mp3/	poptarisznya
 POPTARISZNYA OLDIES	http://adas.poptarisznya.hu:8200/oldies.mp3	poptarisznya
 QUEEN - EXCLUSIVE RADIO	https://nl4.mystreaming.net/er/queen/icecast.audio	nologo
