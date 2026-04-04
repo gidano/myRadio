@@ -341,6 +341,16 @@ void handleGetStations() {
 
     json += "\"name\":\"" + escapedName + "\",";
 
+    String escapedLogo = g_stations[i].logoName;
+    escapedLogo.replace("\\", "\\\\");
+    escapedLogo.replace("\"", "\\\"");
+    escapedLogo.replace("\n", "\\n");
+    escapedLogo.replace("\r", "\\r");
+    escapedLogo.replace("\t", "\\t");
+    if (escapedLogo.length() == 0) escapedLogo = "nologo";
+    json += "\"logo\":\"" + escapedLogo + "\",";
+    json += "\"logoName\":\"" + escapedLogo + "\",";
+
     String escapedUrl = g_stations[i].url;
     escapedUrl.replace("\\", "\\\\");
     escapedUrl.replace("\"", "\\\"");
@@ -409,7 +419,7 @@ void handleSetStation() {
 }
 
 void handleAddStation() {
-  String name, url;
+  String name, url, logoName;
   if (!getParamString("name", name) || !getParamString("url", url)) {
     server.send(400, "text/plain; charset=utf-8", lang::api_missing_name_or_url);
     return;
@@ -420,8 +430,12 @@ void handleAddStation() {
     return;
   }
 
+  bool hasLogo = getParamString("logo", logoName);
+  if (!hasLogo) hasLogo = getParamString("logoName", logoName);
+
   name.trim();
   url.trim();
+  logoName.trim();
 
   if (name.length() == 0 || url.length() == 0) {
     server.send(400, "text/plain; charset=utf-8", lang::api_missing_name_or_url);
@@ -431,9 +445,14 @@ void handleAddStation() {
   name.replace("\t", " ");
   name.replace("\n", " ");
   name.replace("\r", " ");
+  logoName.replace("\t", " ");
+  logoName.replace("\n", " ");
+  logoName.replace("\r", " ");
+  if (logoName.length() == 0) logoName = "nologo";
 
   g_stations[g_stationCount].name = name;
   g_stations[g_stationCount].url  = url;
+  g_stations[g_stationCount].logoName = logoName;
   g_stationCount++;
 
   if (!station_saveToSPIFFS(g_stations, g_stationCount)) {
@@ -502,12 +521,14 @@ void handleUpdateStation() {
     return;
   }
 
-  String name, url;
+  String name, url, logoName;
   bool hasName = getParamString("name", name);
   bool hasUrl  = getParamString("url", url);
+  bool hasLogo = getParamString("logo", logoName);
+  if (!hasLogo) hasLogo = getParamString("logoName", logoName);
   if (!hasName) hasName = getParamString("title", name);
 
-  if (!hasName && !hasUrl) {
+  if (!hasName && !hasUrl && !hasLogo) {
     server.send(400, "application/json", jsonMsg(false, lang::api_missing_name_or_url));
     return;
   }
@@ -531,6 +552,15 @@ void handleUpdateStation() {
       return;
     }
     g_stations[idx].url = url;
+  }
+
+  if (hasLogo) {
+    logoName.trim();
+    logoName.replace("\t", " ");
+    logoName.replace("\n", " ");
+    logoName.replace("\r", " ");
+    if (!logoName.length()) logoName = "nologo";
+    g_stations[idx].logoName = logoName;
   }
 
   if (idx == g_currentIndex) {
