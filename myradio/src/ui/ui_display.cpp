@@ -2,9 +2,85 @@
 #include "ui_bottom_bar.h"
 #if !defined(SSD1322)
 #include "../../logo_rgb565_60x60.h"
+#include <SPIFFS.h>
+#include "../core/station_store.h"
 #endif
 
 static UIDisplayCtx C;
+
+#if !defined(SSD1322)
+extern Station g_stations[MAX_STATIONS];
+extern int g_currentIndex;
+extern int g_stationCount;
+
+static bool isTft320Layout() {
+  return C.W && *C.W <= 320;
+}
+
+static int stationLogoBoxSize() {
+  return isTft320Layout() ? 70 : 70;
+}
+
+static String currentStationLogoName() {
+  if (g_stationCount <= 0 || g_currentIndex < 0 || g_currentIndex >= g_stationCount) return "nologo";
+  String logoName = g_stations[g_currentIndex].logoName;
+  logoName.trim();
+  logoName.replace("\r", "");
+  logoName.replace("\n", "");
+  if (logoName.length() == 0) logoName = "nologo";
+  return logoName;
+}
+
+static String resolveStationLogoPath() {
+  String logoName = currentStationLogoName();
+  if (logoName.length() == 0) logoName = "nologo";
+
+  if (isTft320Layout()) {
+    String p = "/logos/" + logoName + "_small.png";
+    if (SPIFFS.exists(p)) return p;
+    p = "/logos/" + logoName + ".png";
+    if (SPIFFS.exists(p)) return p;
+    p = "/logos/nologo_small.png";
+    if (SPIFFS.exists(p)) return p;
+    return "/logos/nologo.png";
+  }
+
+  String p = "/logos/" + logoName + ".png";
+  if (SPIFFS.exists(p)) return p;
+  return "/logos/nologo.png";
+}
+
+static bool drawCurrentStationLogoPng(int logoX, int logoY, int drawSize) {
+  String logoPath = resolveStationLogoPath();
+  if (!SPIFFS.exists(logoPath)) return false;
+
+  File f = SPIFFS.open(logoPath, "r");
+  if (!f) return false;
+
+  size_t size = f.size();
+  if (size == 0) {
+    f.close();
+    return false;
+  }
+
+  uint8_t* buf = static_cast<uint8_t*>(malloc(size));
+  if (!buf) {
+    f.close();
+    return false;
+  }
+
+  size_t readBytes = f.read(buf, size);
+  f.close();
+  if (readBytes != size) {
+    free(buf);
+    return false;
+  }
+
+  const bool ok = C.tft->drawPng(buf, static_cast<uint32_t>(size), logoX, logoY, drawSize, drawSize);
+  free(buf);
+  return ok;
+}
+#endif
 
 #if !defined(SSD1322)
 static void vu_area(int& x, int& y, int& w, int& h);
@@ -309,18 +385,18 @@ void ui_invalidateVuMeter() {
 #endif
 }
 
-static void ui_drawTftLogoRebuilt() {
+static void ui_drawTftFixedHeaderLogoTopRight(int yHeader) {
 #if defined(SSD1322)
-  return;
+  (void)yHeader;
 #else
   if (!C.tft || !C.W) return;
   constexpr int kLogoW = 60;
   constexpr int kLogoH = 60;
-  constexpr int kPadRight = 4;
+  constexpr int kPadRight = 0;
   constexpr int kPadTop = 4;
 
   const int logoX = *C.W - kLogoW - kPadRight;
-  const int logoY = kPadTop;
+  const int logoY = yHeader + kPadTop;
 
   C.tft->fillRect(logoX, logoY, kLogoW, kLogoH, TFT_BLACK);
 
@@ -335,6 +411,49 @@ static void ui_drawTftLogoRebuilt() {
     C.tft->pushPixels(line, kLogoW, true);
   }
   C.tft->endWrite();
+#endif
+}
+
+static bool ui_drawTftCenteredStationLogo(int yHeader, int headerHeight) {
+#if defined(SSD1322)
+  (void)yHeader;
+  (void)headerHeight;
+  return false;
+#else
+  if (!C.tft || !C.W) return false;
+
+  const int boxSize = stationLogoBoxSize();
+  const int logoX = (*C.W - boxSize) / 2;
+  int logoY = yHeader;
+  if (headerHeight > boxSize) logoY = yHeader + ((headerHeight - boxSize) / 2);
+  if (logoY < 0) logoY = 0;
+
+  const int clearX = 30;
+  const int clearW = max(0, (*C.W - 60) - 60);
+  if (clearW > 0) C.tft->fillRect(clearX, yHeader, clearW, headerHeight, TFT_BLACK);
+  return drawCurrentStationLogoPng(logoX, logoY, boxSize);
+#endif
+}
+
+static void ui_drawTftCenteredFallbackText(const String& header, int yHeader, int headerHeight, int codecIconW) {
+#if defined(SSD1322)
+  (void)header; (void)yHeader; (void)headerHeight; (void)codecIconW;
+#else
+  if (!C.tft || !C.W) return;
+  const int leftEdge = codecIconW > 0 ? (codecIconW + 6) : 0;
+  const int rightEdge = *C.W - 64;
+  const int clearW = rightEdge - leftEdge;
+  if (clearW <= 0) return;
+  const int textH = C.tft->fontHeight();
+  int drawX = leftEdge;
+  int headerW = C.tft->textWidth(header.c_str());
+  if (clearW > headerW) drawX = leftEdge + ((clearW - headerW) / 2);
+  if (drawX < leftEdge) drawX = leftEdge;
+  int textY = yHeader + textH;
+  if (headerHeight > textH + 2) textY = yHeader + ((headerHeight - textH) / 2) + textH - 1;
+  C.tft->fillRect(leftEdge, yHeader, clearW, headerHeight, TFT_BLACK);
+  C.tft->setCursor(drawX, textY);
+  C.tft->print(header);
 #endif
 }
 
@@ -356,27 +475,13 @@ void ui_drawHeaderAndLogo(const String& header, int yHeader, int codecIconW) {
   C.tft->setCursor(drawX, yHeader + textH);
   C.tft->print(header);
 #else
-  const int W = *C.W;
-  constexpr int kLogoW = 60;
-  constexpr int kLogoPadRight = 4;
-  constexpr int kTextPad = 4;
-
-  ui_drawTftLogoRebuilt();
-
-  int tw = C.tft->textWidth(header.c_str());
-  int leftBound  = 4 + codecIconW + 4;
-  int rightBound = W - kLogoW - kLogoPadRight - kTextPad;
-  int x = (W - tw) / 2;
-  if (x < leftBound) x = leftBound;
-  if (x + tw > rightBound) x = rightBound - tw;
-  if (x < leftBound) x = leftBound;
-
-  const int textClearX = leftBound;
-  const int textClearW = rightBound - leftBound;
   const int textH = C.tft->fontHeight();
-  if (textClearW > 0) C.tft->fillRect(textClearX, yHeader, textClearW, textH + 2, TFT_BLACK);
+  int headerHeight = stationLogoBoxSize();
+  if (headerHeight < textH + 2) headerHeight = textH + 2;
 
-  C.tft->setCursor(x, yHeader);
-  C.tft->print(header);
+  ui_drawTftFixedHeaderLogoTopRight(yHeader);
+  if (ui_drawTftCenteredStationLogo(yHeader, headerHeight)) return;
+  ui_drawTftCenteredFallbackText(header, yHeader, headerHeight, codecIconW);
 #endif
 }
+
