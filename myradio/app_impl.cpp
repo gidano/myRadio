@@ -1,5 +1,9 @@
 // app_impl.cpp
 #include <Arduino.h>
+
+// --- ALT SCROLL STATE ---
+static bool scrollArtistActive = true;
+static bool scrollDone = false;
 #include <WiFi.h>
 #include "src/net/net_server.h"
 #include <esp_wifi.h>
@@ -877,6 +881,28 @@ static bool holdPhase = false;
 static int g_wStation = 0, g_wArtist = 0, g_wTitle = 0;
 static bool g_scrollStation = false, g_scrollArtist = false, g_scrollTitle = false;
 static bool g_anyScrollActive = false;
+
+#if !defined(SSD1322)
+enum TftAltScrollLine {
+  TFT_ALT_SCROLL_NONE = 0,
+  TFT_ALT_SCROLL_ARTIST,
+  TFT_ALT_SCROLL_TITLE
+};
+
+static TftAltScrollLine g_tftActiveScrollLine = TFT_ALT_SCROLL_NONE;
+static unsigned long g_tftScrollPauseUntil = 0;
+static const unsigned long TFT_SCROLL_PAUSE_MS = 2200;
+
+static void resetTftAltScrollState() {
+  xArtist = 0;
+  xTitle  = 0;
+  g_tftScrollPauseUntil = 0;
+
+  if (g_scrollArtist) g_tftActiveScrollLine = TFT_ALT_SCROLL_ARTIST;
+  else if (g_scrollTitle) g_tftActiveScrollLine = TFT_ALT_SCROLL_TITLE;
+  else g_tftActiveScrollLine = TFT_ALT_SCROLL_NONE;
+}
+#endif
 static int32_t g_centerXStation = 0, g_centerXArtist = 0, g_centerXTitle = 0;
 
 static void recalcTextMetrics() {
@@ -906,6 +932,10 @@ static void recalcTextMetrics() {
   g_centerXStation = (!g_scrollStation && g_stationName.length() && g_wStation <= (int)sprStation.width()) ? (((int)sprStation.width() - g_wStation) / 2) : 0;
   g_centerXArtist  = (!g_scrollArtist  && g_artist.length()      && g_wArtist  <= (int)sprArtist.width()) ? (((int)sprArtist.width() - g_wArtist) / 2) : 0;
   g_centerXTitle   = (!g_scrollTitle   && g_title.length()       && g_wTitle   <= (int)sprTitle.width()) ? (((int)sprTitle.width() - g_wTitle) / 2) : 0;
+
+#if !defined(SSD1322)
+  resetTftAltScrollState();
+#endif
 }
 
 static bool menuScroll = false;
@@ -945,6 +975,7 @@ static void drawMenuListArea();
 static int textWidthMain(const String& s) { applyStationUiFont(tft); return tft.textWidth(s.c_str()); }
 
 static void recomputeLayout() {
+  bool is320 = (tft.height() == 240);
   W = tft.width();
   H = tft.height();
 
@@ -1003,15 +1034,39 @@ applyStationUiFont(tft);
 #endif
 
   // Layout positions
+#if !defined(SSD1322)
+  const int tftHeaderLogoH = (W <= 320) ? 50 : 70;
+  if (hHeader < tftHeaderLogoH) hHeader = tftHeaderLogoH;
+#endif
   yStationLabel = yHeader + hHeader + UI_GAP_AFTER_HEADER;
   yStationName  = yStationLabel + hLabel + UI_GAP_LABEL_TO_TEXT + UI_LABEL_TEXT_OFFSET;
 
-  yStreamLabel  = yStationName + hStationLine + UI_GAP_AFTER_STATION_LINE;
+  yStreamLabel = (yStationName + hStationLine + UI_GAP_AFTER_STATION_LINE) - 3 - 3 - (is320 ? 2 : 0);
 
   yArtist = yStreamLabel + hLabel + UI_GAP_STREAMLABEL_TO_TEXT + UI_LABEL_TEXT_OFFSET + UI_ARTIST_TITLE_Y_SHIFT;
   yTitle  = yArtist + hArtistLine + UI_GAP_ARTIST_TO_TITLE;
 
+#if !defined(SSD1322)
+  constexpr int TFT_TEXT_BLOCK_SHIFT_Y = -10;
+  yStationLabel += TFT_TEXT_BLOCK_SHIFT_Y;
+  yStationName  += TFT_TEXT_BLOCK_SHIFT_Y;
+  yStreamLabel  += TFT_TEXT_BLOCK_SHIFT_Y;
+  yArtist       += TFT_TEXT_BLOCK_SHIFT_Y;
+  yTitle        += TFT_TEXT_BLOCK_SHIFT_Y;
+
+  if (W <= 320) {
+    // 320x240-only finomhangolás: a station név lejjebb kerül,
+    // a stream/artist/title blokk pedig enyhén feljebb megy,
+    // hogy a 70x70-es középső állomáslogó alatt jobbak legyenek az arányok.
+    yStationName += 8;
+    yStreamLabel -= 2;
+    yArtist      -= 2;
+    yTitle       -= 5;
+  }
+#endif
+
   yVol = H - hStream - UI_MARGIN_BOTTOM;
+
 
   wifiW = UI_WIFI_W; wifiH = UI_WIFI_H;
   wifiX = W - wifiW - UI_WIFI_MARGIN;
@@ -1023,7 +1078,7 @@ applyStationUiFont(tft);
   yHeader = 0;
   yStationLabel = 0;
   yStationName = 2;
-  yStreamLabel = 19;
+  yStreamLabel = (19) - 3 - (is320 ? 2 : 0);
   yArtist = 30;
   yTitle = 41;
   yVol = 53;
@@ -1375,6 +1430,11 @@ static int oledStationRowY() {
 void updateStationNameUI() {
   // Ensure widths/centering are up to date for the current text
   recalcTextMetrics();
+#if !defined(SSD1322)
+  tft.loadFont(uiRegularFont(UI_FONT_HEADER).c_str());
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  ui_drawHeaderAndLogo(text_fix("myRadio"), yHeader, CODEC_ICON_W);
+#endif
   // Draw via sprite (font already loaded), and mark caches so marquee won't immediately redraw again.
   int32_t xS = (!g_scrollStation && g_stationName.length()) ? g_centerXStation : 0;
   // If it's wider than the sprite, start at 0 (marquee handles scrolling elsewhere).
@@ -2065,7 +2125,8 @@ static void updateMarquee() {
     g_lastStationX = xS;
   }
 
-  // Artist
+  // Artist + Title
+#if defined(SSD1322)
   int32_t xA = 0;
   if (!g_artist.length()) {
     xA = 0;
@@ -2081,14 +2142,11 @@ static void updateMarquee() {
     if (scrollA) renderMarqueeLine(sprArtist, g_mArtist, xA, wAM);
     else         renderLine(sprArtist, g_artist, xA);
     sprArtist.pushSprite(0, oledArtistRowY());
-#if defined(SSD1322)
     g_oledPauseBadgeDirty = true;
-#endif
     g_lastArtistDrawn = g_artist;
     g_lastArtistX = xA;
   }
 
-  // Title
   int32_t xT = 0;
   if (!g_title.length()) {
     xT = 0;
@@ -2103,15 +2161,103 @@ static void updateMarquee() {
   if (g_forceRedrawText || scrollT || g_lastTitleDrawn != g_title || g_lastTitleX != xT) {
     if (scrollT) renderMarqueeLine(sprTitle, g_mTitle, xT, wTM);
     else         renderLine(sprTitle, g_title, xT);
-#if defined(SSD1322)
     sprTitle.pushSprite(0, oledTitleRowY());
     g_oledPauseBadgeDirty = true;
-#else
-    sprTitle.pushSprite(0, yTitle);
-#endif
     g_lastTitleDrawn = g_title;
     g_lastTitleX = xT;
   }
+#else
+  const unsigned long nowMs = millis();
+
+  if (g_tftActiveScrollLine == TFT_ALT_SCROLL_ARTIST && !scrollA) {
+    g_tftActiveScrollLine = scrollT ? TFT_ALT_SCROLL_TITLE : TFT_ALT_SCROLL_NONE;
+    xArtist = 0;
+    g_tftScrollPauseUntil = 0;
+  }
+  if (g_tftActiveScrollLine == TFT_ALT_SCROLL_TITLE && !scrollT) {
+    g_tftActiveScrollLine = scrollA ? TFT_ALT_SCROLL_ARTIST : TFT_ALT_SCROLL_NONE;
+    xTitle = 0;
+    g_tftScrollPauseUntil = 0;
+  }
+  if (g_tftActiveScrollLine == TFT_ALT_SCROLL_NONE) {
+    if (scrollA) g_tftActiveScrollLine = TFT_ALT_SCROLL_ARTIST;
+    else if (scrollT) g_tftActiveScrollLine = TFT_ALT_SCROLL_TITLE;
+  }
+
+  const bool pauseActive = (g_tftScrollPauseUntil != 0 && nowMs < g_tftScrollPauseUntil);
+  const bool artistActive = scrollA && (g_tftActiveScrollLine == TFT_ALT_SCROLL_ARTIST) && !pauseActive;
+  const bool titleActive  = scrollT && (g_tftActiveScrollLine == TFT_ALT_SCROLL_TITLE) && !pauseActive;
+
+  int32_t xA = 0;
+  if (!g_artist.length()) {
+    xA = 0;
+    xArtist = 0;
+  } else if (!scrollA) {
+    xA = g_centerXArtist;
+    xArtist = 0;
+  } else if (g_tftActiveScrollLine != TFT_ALT_SCROLL_ARTIST) {
+    xArtist = 0;
+    xA = 0;
+  } else if (pauseActive) {
+    xArtist = 0;
+    xA = 0;
+  } else {
+    xArtist -= SCROLL_STEP;
+    const int fullExitX = -wAM;
+    if (xArtist <= fullExitX) {
+      xArtist = 0;
+      xA = 0;
+      g_tftScrollPauseUntil = nowMs + TFT_SCROLL_PAUSE_MS;
+      g_tftActiveScrollLine = scrollT ? TFT_ALT_SCROLL_TITLE : TFT_ALT_SCROLL_ARTIST;
+    } else {
+      xA = xArtist;
+    }
+  }
+
+  const bool redrawArtist = g_forceRedrawText || artistActive || g_lastArtistDrawn != g_artist || g_lastArtistX != xA;
+  if (redrawArtist) {
+    if (g_tftActiveScrollLine == TFT_ALT_SCROLL_ARTIST && scrollA && !pauseActive && xA != 0) renderMarqueeLine(sprArtist, g_mArtist, xA, wAM);
+    else                                                                                      renderLine(sprArtist, g_artist, xA);
+    sprArtist.pushSprite(0, oledArtistRowY());
+    g_lastArtistDrawn = g_artist;
+    g_lastArtistX = xA;
+  }
+
+  int32_t xT = 0;
+  if (!g_title.length()) {
+    xT = 0;
+    xTitle = 0;
+  } else if (!scrollT) {
+    xT = g_centerXTitle;
+    xTitle = 0;
+  } else if (g_tftActiveScrollLine != TFT_ALT_SCROLL_TITLE) {
+    xTitle = 0;
+    xT = 0;
+  } else if (pauseActive) {
+    xTitle = 0;
+    xT = 0;
+  } else {
+    xTitle -= SCROLL_STEP;
+    const int fullExitX = -wTM;
+    if (xTitle <= fullExitX) {
+      xTitle = 0;
+      xT = 0;
+      g_tftScrollPauseUntil = nowMs + TFT_SCROLL_PAUSE_MS;
+      g_tftActiveScrollLine = scrollA ? TFT_ALT_SCROLL_ARTIST : TFT_ALT_SCROLL_TITLE;
+    } else {
+      xT = xTitle;
+    }
+  }
+
+  const bool redrawTitle = g_forceRedrawText || titleActive || g_lastTitleDrawn != g_title || g_lastTitleX != xT;
+  if (redrawTitle) {
+    if (g_tftActiveScrollLine == TFT_ALT_SCROLL_TITLE && scrollT && !pauseActive && xT != 0) renderMarqueeLine(sprTitle, g_mTitle, xT, wTM);
+    else                                                                                     renderLine(sprTitle, g_title, xT);
+    sprTitle.pushSprite(0, yTitle);
+    g_lastTitleDrawn = g_title;
+    g_lastTitleX = xT;
+  }
+#endif
 
 #if defined(SSD1322)
   if (g_oledPauseBadgeDirty || g_oledPauseBadgeLastState != g_paused) drawOledPausedBadgeOverlay();
@@ -2583,6 +2729,10 @@ static void onButtonShortPress() {
       g_newTitleFlag = false;
       xArtist = 0;
       xTitle  = 0;
+#if !defined(SSD1322)
+      g_tftActiveScrollLine = TFT_ALT_SCROLL_NONE;
+      g_tftScrollPauseUntil = 0;
+#endif
       holdPhase = false;
       trackChangedAt = millis();
 
