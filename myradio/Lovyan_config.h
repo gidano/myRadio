@@ -6,8 +6,8 @@
 
 //#define ILI9488
 //#define ST7789_XPT2046
-#define SSD1322
-//#define ST7789
+//#define SSD1322
+#define ST7789
 //#define ILI9341
 //#define ST7796
 
@@ -27,7 +27,7 @@
 // VERZIÓ
 //====================================================
 #ifndef MYRADIO_VERSION
-  #define MYRADIO_VERSION "0.2.5-minor fixes"
+  #define MYRADIO_VERSION "0.2.6-station_logo"
 #endif
 
 // SSD1322 preview debug
@@ -268,7 +268,7 @@
   #define TFT_OFFSET_Y  0
   #define TFT_INVERT    false
   #define TFT_RGB_ORDER false
-  #define TFT_ROTATION  0
+  #define TFT_ROTATION  1
 #endif
 
 #if defined(ILI9488)
