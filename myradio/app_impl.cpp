@@ -1016,7 +1016,7 @@ static void recomputeLayout() {
 #if defined(SSD1322)
   applyRegularUiFont(tft, 9);
 #else
-  applyRegularUiFont(tft, UI_FONT_TITLE);
+  applySemiboldUiFont(tft, UI_FONT_TITLE);
 #endif
   int hTitleText = tft.fontHeight();
   hTitleLine  = hTitleText + UI_TEXT_LINE_EXTRA;
@@ -1062,6 +1062,11 @@ applyStationUiFont(tft);
     yStreamLabel -= 2;
     yArtist      -= 2;
     yTitle       -= 5;
+  } else {
+    // 480-as TFT layout: a stream/artist/title blokk még 4 px-szel feljebb kerül.
+    yStreamLabel -= 4;
+    yArtist      -= 4;
+    yTitle       -= 4;
   }
 #endif
 
@@ -1124,7 +1129,7 @@ void initSprites() {
 #if defined(SSD1322)
   applyRegularUiFont(sprTitle, 10);
 #else
-  applyRegularUiFont(sprTitle, UI_FONT_TITLE);
+  applySemiboldUiFont(sprTitle, UI_FONT_TITLE);
 #endif
   sprTitle.setTextWrap(false);
 #if defined(SSD1322)
@@ -1318,8 +1323,7 @@ static void drawStreamLabelLine() {
   else line += "--bit";
   if (g_bitrateK > 0) line += " | " + String(g_bitrateK) + "kb/s";
 #else
-  line = text_fix(lang::ui_stream_prefix);
-  line += formatAudioInfoLine();
+  line = formatAudioInfoLine();
   if (g_bitrateK > 0) line += " | " + formatRate(g_bitrateK);
 #endif
 
