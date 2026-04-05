@@ -414,7 +414,7 @@ static void ui_drawTftFixedHeaderLogoTopRight(int yHeader) {
 #endif
 }
 
-static bool ui_drawTftCenteredStationLogo(int yHeader, int headerHeight) {
+static bool ui_drawTftCenteredStationLogo(int yHeader, int headerHeight, int codecIconW) {
 #if defined(SSD1322)
   (void)yHeader;
   (void)headerHeight;
@@ -428,8 +428,8 @@ static bool ui_drawTftCenteredStationLogo(int yHeader, int headerHeight) {
   if (headerHeight > boxSize) logoY = yHeader + ((headerHeight - boxSize) / 2);
   if (logoY < 0) logoY = 0;
 
-  const int clearX = 30;
-  const int clearW = max(0, (*C.W - 60) - 60);
+  const int clearX = codecIconW > 0 ? (codecIconW + 6) : 0;
+  const int clearW = max(0, *C.W - clearX - 60);
   if (clearW > 0) C.tft->fillRect(clearX, yHeader, clearW, headerHeight, TFT_BLACK);
   return drawCurrentStationLogoPng(logoX, logoY, boxSize);
 #endif
@@ -480,8 +480,11 @@ void ui_drawHeaderAndLogo(const String& header, int yHeader, int codecIconW) {
   if (headerHeight < textH + 2) headerHeight = textH + 2;
 
   ui_drawTftFixedHeaderLogoTopRight(yHeader);
-  if (ui_drawTftCenteredStationLogo(yHeader, headerHeight)) return;
-  ui_drawTftCenteredFallbackText(header, yHeader, headerHeight, codecIconW);
+  if (ui_drawTftCenteredStationLogo(yHeader, headerHeight, codecIconW)) return;
+
+  const int leftEdge = codecIconW > 0 ? (codecIconW + 6) : 0;
+  const int clearW = max(0, *C.W - leftEdge - 60);
+  if (clearW > 0) C.tft->fillRect(leftEdge, yHeader, clearW, headerHeight, TFT_BLACK);
 #endif
 }
 
