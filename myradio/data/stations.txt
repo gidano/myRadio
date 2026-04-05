@@ -10,18 +10,18 @@ BIAS RÁDIÓ	https://admin.biasradio.com/radio/8000/live	bias_radio
 BITHANG YOO RÁDIÓ	https://s03.diazol.hu:35162/stream	bithang_yoo
 BLUES WAVE	https://blueswave.radio:8000/blueswave	blueswave
 COOL FM	https://mediagw.e-tiger.net:443/stream/cfmhq	coolfm
-CREEDENCE CLEARWATER REVIVAL	https://nl4.mystreaming.net/er/creedence/icecast.audio	exclusive
+CREEDENCE CLEARWATER REVIVAL	https://nl4.mystreaming.net/er/creedence/icecast.audio	exclusiveradio
 CSUKÁS MESERÁDIÓ	https://mr-stream.connectmedia.hu/4611/mr10.mp3	csukasmeseradio
 DANCEFM 89.5	http://edge126.rdsnet.ro:84/profm/dancefm.mp3	dancefm
 DANUBIUS RÁDIÓ	https://stream.danubiusradio.hu/danubius_192k	danubius
 DANUBIUS RÁDIÓ (HI-FI)	https://danubiusradio.hu/live_HiFi.mp3	danubius
-DEEP PURPLE	https://streaming.exclusive.radio/er/deeppurple/icecast.audio	exclusive
+DEEP PURPLE	https://streaming.exclusive.radio/er/deeppurple/icecast.audio	exclusiveradio
 DEJA VU	https://carina.streamerr.co/stream/dejavuradio/dejavuradio	dejavu
-DEPECHE MODE	http://nl4.mystreaming.net/er/depechemode/icecast.audio	exclusive
+DEPECHE MODE	http://nl4.mystreaming.net/er/depechemode/icecast.audio	exclusiveradio
 DJ NOW!	https://s01.diazol.hu:10072/djnow	radio_now
-ERIC CLAPTON	https://streaming.exclusive.radio/er/ericclapton/icecast.audio	exclusive
+ERIC CLAPTON	https://streaming.exclusive.radio/er/ericclapton/icecast.audio	exclusiveradio
 ESKA ROCK	http://n17a-eu.rcs.revma.com/1nnezw8qz7zuv	eskarock
-FLEETWOOD MAC	https://streaming.exclusive.radio/er/fleetwoodmac/icecast.audio	exclusive
+FLEETWOOD MAC	https://streaming.exclusive.radio/er/fleetwoodmac/icecast.audio	exclusiveradio
 FUNKY CORNER	http://ais-edge147-dal03.cdnstream.com:80/2447_192.mp3	funky_corner
 I LOVE PÉCS	http://radio.ilovepecs.hu:8200/ilp.mp3	ilovepecs
 IRISH FOLK	https://stream.laut.fm/irish-folk	laut_fm
@@ -45,7 +45,7 @@ PETŐFI RÁDIÓ	https://icast.connectmedia.hu/4738/mr2.mp3	petofi
 PINK FLOYD - VIRGIN RADIO	http://icy.unitedradio.it/VirginRogerWaters.mp3	virginradiouk
 POPTARISZNYA	http://adas.poptarisznya.hu:8200/live.mp3/	poptarisznya
 POPTARISZNYA OLDIES	http://adas.poptarisznya.hu:8200/oldies.mp3	poptarisznya
-QUEEN	https://nl4.mystreaming.net/er/queen/icecast.audio	exclusive
+QUEEN	https://nl4.mystreaming.net/er/queen/icecast.audio	exclusiveradio
 RADIO BLUES	http://streams.radiomast.io/radioblues-flac	radioblues_flac
 RADIO COMEDY	https://a7.asurahosting.com:8430/radio.mp3	radio_comedy
 RADIO ITALO4YOU	https://ssl-1.radiohost.pl:8018/stream	radio_italo4you
@@ -62,7 +62,7 @@ SLÁGER FM	http://92.61.114.159:7812/slagerfm256.mp3	slager_fm
 SOMA FM REGGAE	https://ice2.somafm.com/reggae-128-mp3	soma_fm
 SUNSHINE FM	http://stream.composeit.hu:8100/sunshine	sunshine_fm
 SUPERDJ	https://stream.diazol.hu:35150/stream	superdj
-TAYLOR SWIFT	https://nl4.mystreaming.net/er/taylorswift/icecast.audio	exclusive
+TAYLOR SWIFT	https://nl4.mystreaming.net/er/taylorswift/icecast.audio	exclusiveradio
 TESZT AAC 320KBPS 24B/48K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac-lo	motherearth
 TESZT AAC 320KBPS 24B/96K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac	motherearth
 TESZT FLAC 24B/96K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.flac-lo	motherearth
@@ -75,4 +75,4 @@ WDWH-ROOTS OF ROCK	http://s4.voscast.com:8950/stream	nologo
 YOUVENTUS RÁDIÓ	http://s2.audiostream.hu/juventus_192k	youventus
 YOUVENTUS RÁDIÓ (HI-FI)	http://s2.audiostream.hu:8090/juventus_FLAC	youventus
 ZEBRÁDIÓ	https://stream.zebradio.hu:8443/zebradio	zebradio
-ZZ TOP	https://2.mystreaming.net/er/zztop/icecast.audio	exclusive
+ZZ TOP	https://2.mystreaming.net/er/zztop/icecast.audio	exclusiveradio
