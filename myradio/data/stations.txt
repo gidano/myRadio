@@ -1,31 +1,31 @@
 181.FM CLASSIC HITS	https://listen.181fm.com/181-greatoldies_128k.mp3	181
 181.FM GOOD TIME OLDIES	https://listen.181fm.com/181-goodtime_128k.mp3	181
 181.FM HIGHWAY	https://listen.181fm.com/181-highway_128k.mp3	181
-AIDA RADIO	https://cdn05.radio.cloud:8128/AIDA-OMNIA-GAI	nologo
+AIDA RADIO	https://cdn05.radio.cloud:8128/AIDA-OMNIA-GAI	aidaradio
 AMSTERDAM FUNK CHANNEL	https://stream.afc.fm/index.html	afc
 BDPST ROCK	https://bdpstrock.hu/live.mp3	bdpstrock
 BDPST ROCK (HI-FI)	http://s2.audiostream.hu:8091/bdpstrock_FLAC	bdpstrock
-BEST OF ROCK.FM AC DC	https://bestofrockfm.stream.vip/acdc/mp3-256/bestofrock.fm/	nologo
+BEST OF ROCK.FM AC DC	https://bestofrockfm.stream.vip/acdc/mp3-256/bestofrock.fm/	bestofrockfm
 BIAS RÁDIÓ	https://admin.biasradio.com/radio/8000/live	bias_radio
-BITHANG YOO RÁDIÓ	https://s03.diazol.hu:35162/stream	nologo
+BITHANG YOO RÁDIÓ	https://s03.diazol.hu:35162/stream	bithang_yoo
 BLUES WAVE	https://blueswave.radio:8000/blueswave	blueswave
 COOL FM	https://mediagw.e-tiger.net:443/stream/cfmhq	coolfm
-CREEDENCE CLEARWATER REVIVAL	https://nl4.mystreaming.net/er/creedence/icecast.audio	nologo
+CREEDENCE CLEARWATER REVIVAL	https://nl4.mystreaming.net/er/creedence/icecast.audio	exclusive
 CSUKÁS MESERÁDIÓ	https://mr-stream.connectmedia.hu/4611/mr10.mp3	csukasmeseradio
 DANCEFM 89.5	http://edge126.rdsnet.ro:84/profm/dancefm.mp3	dancefm
 DANUBIUS RÁDIÓ	https://stream.danubiusradio.hu/danubius_192k	danubius
 DANUBIUS RÁDIÓ (HI-FI)	https://danubiusradio.hu/live_HiFi.mp3	danubius
-DEEP PURPLE EXCLUSIVELY	https://streaming.exclusive.radio/er/deeppurple/icecast.audio	exclusive
+DEEP PURPLE	https://streaming.exclusive.radio/er/deeppurple/icecast.audio	exclusive
 DEJA VU	https://carina.streamerr.co/stream/dejavuradio/dejavuradio	dejavu
-DEPECHE MODE	http://nl4.mystreaming.net/er/depechemode/icecast.audio	nologo
-DJ NOW!	https://s01.diazol.hu:10072/djnow	nologo
+DEPECHE MODE	http://nl4.mystreaming.net/er/depechemode/icecast.audio	exclusive
+DJ NOW!	https://s01.diazol.hu:10072/djnow	radio_now
 ERIC CLAPTON	https://streaming.exclusive.radio/er/ericclapton/icecast.audio	exclusive
 ESKA ROCK	http://n17a-eu.rcs.revma.com/1nnezw8qz7zuv	eskarock
 FLEETWOOD MAC	https://streaming.exclusive.radio/er/fleetwoodmac/icecast.audio	exclusive
 FUNKY CORNER	http://ais-edge147-dal03.cdnstream.com:80/2447_192.mp3	funky_corner
 I LOVE PÉCS	http://radio.ilovepecs.hu:8200/ilp.mp3	ilovepecs
 IRISH FOLK	https://stream.laut.fm/irish-folk	laut_fm
-IRISH PUB	https://solid24.streamupsolutions.com/proxy/vbkiacud?mp=/live	nologo
+IRISH PUB	https://solid24.streamupsolutions.com/proxy/vbkiacud?mp=/live	irishpubradio
 KLUBRÁDIÓ	https://stream.klubradio.hu:8443/bpstream	klubradio
 KOSSUTH RÁDIÓ	https://icast.connectmedia.hu/4726/mr1ex.mp3	kossuth
 LA GROSSE RADIO REGGAE	https://hd.lagrosseradio.info/lagrosseradio-reggae-192.mp3	lagrosse
@@ -37,23 +37,23 @@ MEGADANCE	http://gamershouse.hu:8000/livemega.mp3	megadance
 NEXT FM	https://stream.nextfm.hu/radio/8000/nextfmhu.mp3	nextfm
 OXYGEN MAGYAR ZENE	https://oxygenmusic.hu:8443/oxygenmagyarzene	oxygen_music
 OXYGEN MUSIC	https://oxygenmusic.hu:8443/oxygenmusic_192	oxygen_music
-PANNON (SZABADKA)	http://breddstream.unrealhosting.hu:4120/	nologo
-PANNONIA	https://ip157.ozelip.com/8130/stream	nologo
+PANNON (SZABADKA)	http://breddstream.unrealhosting.hu:4120/	pannon_rtv
+PANNONIA	https://ip157.ozelip.com/8130/stream	pannonia
 PARKFM	https://s03.diazol.hu:7142/stream.mp3	parkfm
 PC/ZENE - KEVERT	http://192.168.31.101:8000/playlist_shuffle.m3u	nologo
 PETŐFI RÁDIÓ	https://icast.connectmedia.hu/4738/mr2.mp3	petofi
-PINK FLOYD - VIRGIN RADIO ROCKSTAR	http://icy.unitedradio.it/VirginRogerWaters.mp3	virginradiouk
+PINK FLOYD - VIRGIN RADIO	http://icy.unitedradio.it/VirginRogerWaters.mp3	virginradiouk
 POPTARISZNYA	http://adas.poptarisznya.hu:8200/live.mp3/	poptarisznya
 POPTARISZNYA OLDIES	http://adas.poptarisznya.hu:8200/oldies.mp3	poptarisznya
-QUEEN - EXCLUSIVE RADIO	https://nl4.mystreaming.net/er/queen/icecast.audio	nologo
+QUEEN	https://nl4.mystreaming.net/er/queen/icecast.audio	exclusive
 RADIO BLUES	http://streams.radiomast.io/radioblues-flac	radioblues_flac
 RADIO COMEDY	https://a7.asurahosting.com:8430/radio.mp3	radio_comedy
 RADIO ITALO4YOU	https://ssl-1.radiohost.pl:8018/stream	radio_italo4you
 RADIOPARADISE (VOR)	http://stream-dc1.radioparadise.com/rp_192m.ogg	radioparadise
 RADIOPARADISE ROCK (FLAC)	http://stream.radioparadise.com/rock-flacm	radioparadise
-REGGAE CHILL CAFE	https://maggie.torontocast.com:2020/stream/reggaechillcafe	nologo
+REGGAE CHILL CAFE	https://maggie.torontocast.com:2020/stream/reggaechillcafe	reggaechillcafe
 REGGAE141.COM	http://das-edge27-sa23-lax02.cdnstream.com:80/1301_128	reggae141
-REGINA GYŐR	https://cast1.asurahosting.com:443/proxy/zoltan1/stream	nologo
+REGINA GYŐR	https://cast1.asurahosting.com:443/proxy/zoltan1/stream	regina_gyor
 RETRO RÁDIÓ	https://icast.connectmedia.hu/5002/live.mp3	retro_radio
 ROCK FM	https://icast.connectmedia.hu/5301/live.mp3	rock_fm
 ROXY RÁDIÓ	https://s2.audiostream.hu/roxy_192k	roxy_radio
@@ -61,8 +61,8 @@ RÁDIÓ 1	https://icast.connectmedia.hu/5201/live.mp3	radio1
 SLÁGER FM	http://92.61.114.159:7812/slagerfm256.mp3	slager_fm
 SOMA FM REGGAE	https://ice2.somafm.com/reggae-128-mp3	soma_fm
 SUNSHINE FM	http://stream.composeit.hu:8100/sunshine	sunshine_fm
-SUPERDJ	https://stream.diazol.hu:35150/stream	nologo
-TAYLOR SWIFT	https://nl4.mystreaming.net/er/taylorswift/icecast.audio	nologo
+SUPERDJ	https://stream.diazol.hu:35150/stream	superdj
+TAYLOR SWIFT	https://nl4.mystreaming.net/er/taylorswift/icecast.audio	exclusive
 TESZT AAC 320KBPS 24B/48K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac-lo	motherearth
 TESZT AAC 320KBPS 24B/96K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac	motherearth
 TESZT FLAC 24B/96K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.flac-lo	motherearth
@@ -75,4 +75,4 @@ WDWH-ROOTS OF ROCK	http://s4.voscast.com:8950/stream	nologo
 YOUVENTUS RÁDIÓ	http://s2.audiostream.hu/juventus_192k	youventus
 YOUVENTUS RÁDIÓ (HI-FI)	http://s2.audiostream.hu:8090/juventus_FLAC	youventus
 ZEBRÁDIÓ	https://stream.zebradio.hu:8443/zebradio	zebradio
-ZZ TOP EXCLUSIVELY	https://2.mystreaming.net/er/zztop/icecast.audio	nologo
+ZZ TOP	https://2.mystreaming.net/er/zztop/icecast.audio	exclusive
