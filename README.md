@@ -4,6 +4,13 @@ ESP32 alapú internet rádió projekt TFT és OLED kijelző támogatással, webe
 
 ---
 
+## Képernyőkép/Screenshots
+
+<img src="https://github.com/gidano/myRadio/blob/main/images/myRadio_320x240px.jpg" alt="320x240">
+<img src="https://github.com/gidano/myRadio/blob/main/images/myRadio_480x320px.jpg" alt="480x320">
+
+---
+
 ## 🇭🇺 Funkciók
 
 * Enkóder hangerőszabályzás
