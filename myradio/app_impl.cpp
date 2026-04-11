@@ -800,7 +800,7 @@ static const uint16_t* codecIconPtrFromCodec(const String& codec) {
 static void drawCodecIconTopLeft() {
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
   const int x = 0;
-  const int y = 0;
+  const int y = (tft.height() > 240) ? 7 : 0;
   clearRect(x, y, CODEC_ICON_W, CODEC_ICON_H);
 
 #if defined(SSD1322)
