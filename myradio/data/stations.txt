@@ -10,7 +10,7 @@ BIAS RÁDIÓ	https://admin.biasradio.com/radio/8000/live	bias_radio
 BITHANG YOO RÁDIÓ	https://s03.diazol.hu:35162/stream	bithang_yoo
 BLUES WAVE	https://blueswave.radio:8000/blueswave	blueswave
 COOL FM	https://mediagw.e-tiger.net:443/stream/cfmhq	coolfm
-CREEDENCE CLEARWATER REVIVAL	https://nl4.mystreaming.net/er/creedence/icecast.audio	exclusiveradio
+CREEDENCE C. R.	https://nl4.mystreaming.net/er/creedence/icecast.audio	exclusiveradio
 CSUKÁS MESERÁDIÓ	https://mr-stream.connectmedia.hu/4611/mr10.mp3	csukasmeseradio
 DANCEFM 89.5	http://edge126.rdsnet.ro:84/profm/dancefm.mp3	dancefm
 DANUBIUS RÁDIÓ	https://stream.danubiusradio.hu/danubius_192k	danubius
@@ -23,6 +23,7 @@ ERIC CLAPTON	https://streaming.exclusive.radio/er/ericclapton/icecast.audio	excl
 ESKA ROCK	http://n17a-eu.rcs.revma.com/1nnezw8qz7zuv	eskarock
 FLEETWOOD MAC	https://streaming.exclusive.radio/er/fleetwoodmac/icecast.audio	exclusiveradio
 FUNKY CORNER	http://ais-edge147-dal03.cdnstream.com:80/2447_192.mp3	funky_corner
+GUNS 'N' ROSES, ROCK FM - DE	http://stream.regenbogen2.de/gunsnroses/mp3-128/radiobrowser	rock_fm_de
 I LOVE PÉCS	http://radio.ilovepecs.hu:8200/ilp.mp3	ilovepecs
 IRISH FOLK	https://stream.laut.fm/irish-folk	laut_fm
 IRISH PUB	https://solid24.streamupsolutions.com/proxy/vbkiacud?mp=/live	irishpubradio
@@ -40,7 +41,7 @@ OXYGEN MUSIC	https://oxygenmusic.hu:8443/oxygenmusic_192	oxygen_music
 PANNON (SZABADKA)	http://breddstream.unrealhosting.hu:4120/	pannon_rtv
 PANNONIA	https://ip157.ozelip.com/8130/stream	pannonia
 PARKFM	https://s03.diazol.hu:7142/stream.mp3	parkfm
-PC/ZENE - KEVERT	http://192.168.31.101:8000/playlist_shuffle.m3u	nologo
+PC/ZENE - KEVERT	http://192.168.31.101:8000/playlist_shuffle.m3u	music_server
 PETŐFI RÁDIÓ	https://icast.connectmedia.hu/4738/mr2.mp3	petofi
 PINK FLOYD - VIRGIN RADIO	http://icy.unitedradio.it/VirginRogerWaters.mp3	virginradiouk
 POPTARISZNYA	http://adas.poptarisznya.hu:8200/live.mp3/	poptarisznya
@@ -56,6 +57,7 @@ REGGAE141.COM	http://das-edge27-sa23-lax02.cdnstream.com:80/1301_128	reggae141
 REGINA GYŐR	https://cast1.asurahosting.com:443/proxy/zoltan1/stream	regina_gyor
 RETRO RÁDIÓ	https://icast.connectmedia.hu/5002/live.mp3	retro_radio
 ROCK FM	https://icast.connectmedia.hu/5301/live.mp3	rock_fm
+ROLLING STONES, ROCK FM - DE	http://stream.regenbogen2.de/rollingstones/mp3-128	rock_fm_de
 ROXY RÁDIÓ	https://s2.audiostream.hu/roxy_192k	roxy_radio
 RÁDIÓ 1	https://icast.connectmedia.hu/5201/live.mp3	radio1
 SLÁGER FM	http://92.61.114.159:7812/slagerfm256.mp3	slager_fm
@@ -63,10 +65,6 @@ SOMA FM REGGAE	https://ice2.somafm.com/reggae-128-mp3	soma_fm
 SUNSHINE FM	http://stream.composeit.hu:8100/sunshine	sunshine_fm
 SUPERDJ	https://stream.diazol.hu:35150/stream	superdj
 TAYLOR SWIFT	https://nl4.mystreaming.net/er/taylorswift/icecast.audio	exclusiveradio
-TESZT AAC 320KBPS 24B/48K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac-lo	motherearth
-TESZT AAC 320KBPS 24B/96K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.aac	motherearth
-TESZT FLAC 24B/96K	https://motherearth.streamserver24.com/listen/motherearth/motherearth.flac-lo	motherearth
-TESZT LAPFOX (320 VOR)	https://radio.lapfoxradio.com/radio/8000/stream-ogg-320.ogg	lapfox
 TESZT LAZA RADIO (VOR)	http://stream.lazaradio.com:8100/live.ogg	lazaradio
 TESZT LIBLWIP CSERE	https://s2.euer.tv/audio320	nologo
 TESZT TILOS (OPUS)	https://stream.tilos.hu/tilos.opus	tilos_radio
