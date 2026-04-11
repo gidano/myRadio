@@ -17,6 +17,10 @@ static bool isTft320Layout() {
   return C.W && *C.W <= 320;
 }
 
+static bool isTftSimpleVuLayout() {
+  return C.W && *C.W <= 480;
+}
+
 static int stationLogoBoxSize() {
   return isTft320Layout() ? 70 : 70;
 }
@@ -128,6 +132,7 @@ static void vu_area(int& x, int& y, int& w, int& h) {
   const int bufW = 40;
   const int gap = 10;
   const int sidePad = 10;
+  const bool simple320 = isTft320Layout();
 
   int bufX = *C.wifiX - bufW - gap;
 
@@ -150,6 +155,7 @@ static void vu_area(int& x, int& y, int& w, int& h) {
   if (avail < 0) avail = 0;
 
   int targetW = 140;
+  if (simple320) targetW += 10;
   if (targetW > avail) targetW = avail;
 
   const int minW = 60;
@@ -244,60 +250,103 @@ static void draw_vu_boombox_static() {
   if (s100 < 65) s100 = 65;
   if (s100 > 120) s100 = 120;
 
+  const bool simpleVu = isTftSimpleVuLayout();
+
   g_vu.barH   = max(3, (4 * s100) / 100);
-  g_vu.barGap = max(2, (3 * s100) / 100);
+  g_vu.barGap = simpleVu ? 4 : max(2, (3 * s100) / 100);
 
   clearRect(x, y, w, h);
 
-  int rr = max(3, (4 * s100) / 100);
-  C.tft->drawRoundRect(x, y, w, h, rr, TFT_WHITE);
+  int innerX = x;
+  int innerW = w;
 
-  const int pad = max(2, (3 * s100) / 100);
-  const int speakerPad = max(6, (10 * s100) / 100);
-  const int speakerR = max(3, (4 * s100) / 100);
+  if (!simpleVu) {
+    int rr = max(3, (4 * s100) / 100);
+    C.tft->drawRoundRect(x, y, w, h, rr, TFT_WHITE);
 
-  int cy = y + h / 2;
-  int spLX = x + pad + speakerPad;
-  int spRX = x + w - pad - speakerPad;
+    const int pad = max(2, (3 * s100) / 100);
+    const int speakerPad = max(6, (10 * s100) / 100);
+    const int speakerR = max(3, (4 * s100) / 100);
 
-  C.tft->drawCircle(spLX, cy, speakerR, TFT_WHITE);
-  C.tft->fillCircle(spLX, cy, 1, TFT_WHITE);
-  C.tft->drawCircle(spRX, cy, speakerR, TFT_WHITE);
-  C.tft->fillCircle(spRX, cy, 1, TFT_WHITE);
+    int cy = y + h / 2;
+    int spLX = x + pad + speakerPad;
+    int spRX = x + w - pad - speakerPad;
 
-  int innerGap = max(4, (6 * s100) / 100);
-  int innerX = spLX + speakerR + innerGap;
-  int innerW = (spRX - speakerR - innerGap) - innerX;
-  if (innerW < 20) innerW = 20;
+    C.tft->drawCircle(spLX, cy, speakerR, TFT_WHITE);
+    C.tft->fillCircle(spLX, cy, 1, TFT_WHITE);
+    C.tft->drawCircle(spRX, cy, speakerR, TFT_WHITE);
+    C.tft->fillCircle(spRX, cy, 1, TFT_WHITE);
 
-  const int labelW = max(7, (8 * s100) / 100);
+    int innerGap = max(4, (6 * s100) / 100);
+    innerX = spLX + speakerR + innerGap;
+    innerW = (spRX - speakerR - innerGap) - innerX;
+    if (innerW < 20) innerW = 20;
+  }
+
+  const int labelW = simpleVu ? (max(7, (8 * s100) / 100) + 8) : max(7, (8 * s100) / 100);
   int barX = innerX + labelW;
   int barW = innerW - labelW;
+  if (simpleVu) barW = max(10, barW - 5);
   if (barW < 10) { barX = innerX; barW = innerW; }
 
   int totalBarsH = g_vu.barH + g_vu.barGap + g_vu.barH;
   int y0 = y + (h - totalBarsH) / 2;
 
-  C.tft->drawRect(innerX - 1, y0 - 2, innerW + 2, totalBarsH + 4, TFT_WHITE);
+  if (!simpleVu) {
+    C.tft->drawRect(innerX - 1, y0 - 2, innerW + 2, totalBarsH + 4, TFT_WHITE);
+  }
 
-  auto drawLabel = [&](int yy, char c) {
-    int lx = innerX + 1;
-    int ly = yy - 1;
-    if (c == 'L') {
-      C.tft->drawFastVLine(lx, ly, 6, TFT_WHITE);
-      C.tft->drawFastHLine(lx, ly + 5, 4, TFT_WHITE);
-    } else {
-      C.tft->drawFastVLine(lx, ly, 6, TFT_WHITE);
-      C.tft->drawFastHLine(lx, ly, 4, TFT_WHITE);
-      C.tft->drawFastHLine(lx, ly + 2, 4, TFT_WHITE);
-      C.tft->drawFastHLine(lx, ly + 5, 4, TFT_WHITE);
-      C.tft->drawPixel(lx + 3, ly + 3, TFT_WHITE);
-      C.tft->drawPixel(lx + 4, ly + 4, TFT_WHITE);
-      C.tft->drawPixel(lx + 5, ly + 5, TFT_WHITE);
+  int labelX = innerX + 1;
+
+  if (simpleVu && g_vu.barGap >= 4) {
+    const int guideY = y0 + g_vu.barH + (g_vu.barGap / 2);
+    const int guideStart = innerX + 1;
+    const int guideEnd = barX + barW;
+    const int labelCX = guideStart + 2;
+
+    for (int xx = guideStart; xx < guideEnd; xx += 4) {
+      C.tft->drawFastHLine(xx, guideY, min(2, guideEnd - xx), TFT_DARKGREY);
     }
-  };
-  drawLabel(y0, 'L');
-  drawLabel(y0 + g_vu.barH + g_vu.barGap, 'R');
+
+    auto drawCenteredLabel = [&](int centerX, int topY, char c) {
+      centerX += 2;
+      C.tft->fillRect(centerX - 3, topY - 1, 9, 8, TFT_BLACK);
+      if (c == 'L') {
+        C.tft->drawFastVLine(centerX - 1, topY, 6, TFT_WHITE);
+        C.tft->drawFastHLine(centerX - 1, topY + 5, 4, TFT_WHITE);
+      } else {
+        C.tft->drawFastVLine(centerX - 1, topY, 6, TFT_WHITE);
+        C.tft->drawFastHLine(centerX - 1, topY, 4, TFT_WHITE);
+        C.tft->drawFastHLine(centerX - 1, topY + 2, 4, TFT_WHITE);
+        C.tft->drawPixel(centerX + 1, topY + 1, TFT_WHITE);
+        C.tft->drawPixel(centerX + 1, topY + 3, TFT_WHITE);
+        C.tft->drawPixel(centerX + 2, topY + 4, TFT_WHITE);
+        C.tft->drawPixel(centerX + 2, topY + 5, TFT_WHITE);
+      }
+    };
+
+    drawCenteredLabel(labelCX, guideY - 7, 'L');
+    drawCenteredLabel(labelCX, guideY + 2, 'R');
+  } else {
+    auto drawLabel = [&](int yy, char c) {
+      int lx = labelX;
+      int ly = yy - 1;
+      if (c == 'L') {
+        C.tft->drawFastVLine(lx, ly, 6, TFT_WHITE);
+        C.tft->drawFastHLine(lx, ly + 5, 4, TFT_WHITE);
+      } else {
+        C.tft->drawFastVLine(lx, ly, 6, TFT_WHITE);
+        C.tft->drawFastHLine(lx, ly, 4, TFT_WHITE);
+        C.tft->drawFastHLine(lx, ly + 2, 4, TFT_WHITE);
+        C.tft->drawFastHLine(lx, ly + 5, 4, TFT_WHITE);
+        C.tft->drawPixel(lx + 3, ly + 3, TFT_WHITE);
+        C.tft->drawPixel(lx + 4, ly + 4, TFT_WHITE);
+        C.tft->drawPixel(lx + 5, ly + 5, TFT_WHITE);
+      }
+    };
+    drawLabel(y0, 'L');
+    drawLabel(y0 + g_vu.barH + g_vu.barGap, 'R');
+  }
 
   g_vu.innerX = innerX;
   g_vu.innerW = innerW;
@@ -328,13 +377,34 @@ static void draw_vu_boombox_dynamic(int lvlL, int lvlR, int peakL, int peakR) {
   int lW = (barW * lvlL) / 100;
   int rW = (barW * lvlR) / 100;
 
+  const bool simpleVu = isTftSimpleVuLayout();
   auto fillLevel = [&](int yy, int fillW){
-    int gW = min(fillW, (barW * 70) / 100);
-    if (gW > 0) C.tft->fillRect(barX, yy, gW, barH, TFT_GREEN);
-    int yW = min(max(fillW - gW, 0), (barW * 20) / 100);
-    if (yW > 0) C.tft->fillRect(barX + gW, yy, yW, barH, TFT_YELLOW);
-    int rW2 = fillW - gW - yW;
-    if (rW2 > 0) C.tft->fillRect(barX + gW + yW, yy, rW2, barH, TFT_RED);
+    if (!simpleVu) {
+      int gW = min(fillW, (barW * 70) / 100);
+      if (gW > 0) C.tft->fillRect(barX, yy, gW, barH, TFT_GREEN);
+      int yW = min(max(fillW - gW, 0), (barW * 20) / 100);
+      if (yW > 0) C.tft->fillRect(barX + gW, yy, yW, barH, TFT_YELLOW);
+      int rW2 = fillW - gW - yW;
+      if (rW2 > 0) C.tft->fillRect(barX + gW + yW, yy, rW2, barH, TFT_RED);
+      return;
+    }
+
+    const int segW = 4;
+    const int segGap = 2;
+    const int segStep = segW + segGap;
+    for (int sx = 0; sx < fillW; sx += segStep) {
+      int drawW = min(segW, fillW - sx);
+      if (drawW <= 0) break;
+      int px = barX + sx;
+      uint16_t col = TFT_GREEN;
+      int segEnd = sx + drawW;
+      if (segEnd > (barW * 90) / 100) {
+        col = TFT_RED;
+      } else if (segEnd > (barW * 70) / 100) {
+        col = TFT_YELLOW;
+      }
+      C.tft->fillRect(px, yy, drawW, barH, col);
+    }
   };
   fillLevel(y0, lW);
   fillLevel(y0 + barH + barGap, rW);
@@ -393,7 +463,7 @@ static void ui_drawTftFixedHeaderLogoTopRight(int yHeader) {
   constexpr int kLogoW = 60;
   constexpr int kLogoH = 60;
   constexpr int kPadRight = 0;
-  constexpr int kPadTop = 4;
+  const int kPadTop = isTft320Layout() ? 0 : 4;
 
   const int logoX = *C.W - kLogoW - kPadRight;
   const int logoY = yHeader + kPadTop;
