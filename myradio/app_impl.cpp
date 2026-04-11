@@ -115,6 +115,8 @@ void saveLastStationToNVS();
 void saveLastStationToSPIFFS();
 static void renderLine(LGFX_Sprite& spr, const String& text, int32_t x);
 static void recalcTextMetrics();
+static void drawStaticUI();
+void updateStationNameUI();
 static void reserveHotStrings();
 static void logMemorySnapshot(const char* tag);
 static void serialLogf(const char* fmt, ...);
@@ -138,6 +140,17 @@ static void onTouchLongPress(int x, int y);
 void drawBottomBar();
 static void drawOledIpLine();
 #if defined(SSD1322)
+static constexpr uint8_t OLED_BRIGHTNESS_FULL = 0x7F;
+static constexpr uint8_t OLED_BRIGHTNESS_DIM  = 0x10;
+static constexpr uint32_t OLED_DIM_AFTER_MS   = 120000UL;
+static constexpr uint32_t OLED_OFF_AFTER_MS   = 300000UL;
+static uint32_t g_oledLastUserActivityMs = 0;
+static bool g_oledDimmed = false;
+static bool g_oledDisplayOff = false;
+
+static void oledApplyPowerState();
+static void oledMarkUserActivity();
+static void oledUpdateIdlePowerState();
 static void oledUpdateVolumeOnly();
 
 static void oledInvalidateVuMeter();
@@ -312,7 +325,15 @@ static void initDisplayBasic() {
   // Kijelző init (ne maradjon fehér / üres a háttérvilágítás alatt)
   tft.init();
   tft.setRotation(TFT_ROTATION);      // a Lovyan_config.h-ban állítod be
+#if defined(SSD1322)
+  g_oledLastUserActivityMs = millis();
+  g_oledDimmed = false;
+  g_oledDisplayOff = false;
+  tft.setDisplayEnabled(true);
+  tft.setBrightness(OLED_BRIGHTNESS_FULL);
+#else
   tft.setBrightness(255);
+#endif
   tft.fillScreen(TFT_BLACK);
 #if defined(SSD1322)
   ssd1322_draw_debug_boot(tft);
@@ -320,8 +341,50 @@ static void initDisplayBasic() {
   g_tftReady = true;
 }
 
+#if defined(SSD1322)
+static void oledApplyPowerState() {
+  tft.setDisplayEnabled(!g_oledDisplayOff);
+  if (!g_oledDisplayOff) {
+    tft.setBrightness(g_oledDimmed ? OLED_BRIGHTNESS_DIM : OLED_BRIGHTNESS_FULL);
+  }
+}
+
+static void oledMarkUserActivity() {
+  g_oledLastUserActivityMs = millis();
+  const bool wasDimmed = g_oledDimmed;
+  const bool wasOff = g_oledDisplayOff;
+  g_oledDimmed = false;
+  g_oledDisplayOff = false;
+  if (wasDimmed || wasOff) {
+    oledApplyPowerState();
+    if (wasOff) {
+      drawStaticUI();
+      drawOledIpLine();
+      oledInvalidateVuMeter();
+      oledDrawVuMeter(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+      updateStationNameUI();
+    }
+  }
+}
+
+static void oledUpdateIdlePowerState() {
+  const uint32_t now = millis();
+  const uint32_t idleMs = now - g_oledLastUserActivityMs;
+  const bool shouldOff = (idleMs >= OLED_OFF_AFTER_MS);
+  const bool shouldDim = !shouldOff && (idleMs >= OLED_DIM_AFTER_MS);
+  if (shouldOff != g_oledDisplayOff || shouldDim != g_oledDimmed) {
+    g_oledDisplayOff = shouldOff;
+    g_oledDimmed = shouldDim;
+    oledApplyPowerState();
+  }
+}
+#endif
+
 static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   initDisplayBasic();
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   tft.fillScreen(TFT_BLACK);
 
 #if defined(SSD1322)
@@ -770,6 +833,7 @@ int g_bufferPercent = 0;
 static void updateVolumeOnly() {
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
 #if defined(SSD1322)
+  oledMarkUserActivity();
   oledUpdateVolumeOnly();
 #else
   ui_drawBottomBar(g_Volume, g_bufferPercent, (WiFi.status() == WL_CONNECTED));
@@ -1397,6 +1461,9 @@ static AudioControlCtx makeAudioControlCtx() {
 }
 
 static void setPaused(bool paused) {
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   AudioControlCtx ctx = makeAudioControlCtx();
   audio_control_setPaused(ctx, paused);
   g_forceRedrawText = true;
@@ -1406,6 +1473,9 @@ static void setPaused(bool paused) {
 }
 
 void togglePaused() {
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   AudioControlCtx ctx = makeAudioControlCtx();
   audio_control_togglePaused(ctx);
   g_forceRedrawText = true;
@@ -1420,6 +1490,9 @@ bool startPlaybackCurrent(bool allowReloadPlaylist) {
 }
 
 static bool advancePlaylistAndPlay() {
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   return playlist_runtime_advancePlaylistAndPlay(g_playlistMetaCtx);
 }
 
@@ -2626,6 +2699,9 @@ static int touchMenuRowFromY(int y) {
 }
 
 static void onTouchTap(int x, int y) {
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
 
@@ -2664,6 +2740,9 @@ static void onTouchTap(int x, int y) {
 }
 
 static void onTouchDrag(int startX, int startY, int x, int y) {
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   if (g_mode != MODE_MENU || g_stationCount <= 0) return;
   if (!touchIsInMenuListZone(startY)) return;
   if (x < 0 || y < 0) return;
@@ -2693,6 +2772,9 @@ static void onTouchDrag(int startX, int startY, int x, int y) {
 }
 
 static void onTouchLongPress(int x, int y) {
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   (void)x; (void)y;
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
@@ -2700,6 +2782,9 @@ static void onTouchLongPress(int x, int y) {
 }
 
 static void onButtonLongPress() {
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   g_touchDragStartX = -1;
   g_touchDragStartY = -1;
 
@@ -2718,6 +2803,9 @@ static void onButtonLongPress() {
 }
 
 static void onButtonShortPress() {
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
   if (g_mode == MODE_PLAY) {
     togglePaused();
   } else if (g_mode == MODE_MENU) {
@@ -3154,6 +3242,9 @@ while (WiFi.status() != WL_CONNECTED) {
 
   logMemorySnapshot("after sprites");
   drawStaticUI();
+#if defined(SSD1322)
+  oledMarkUserActivity();
+#endif
 
   // VU meter init (audio hook fogja etetni)
   vu_init();
@@ -3362,6 +3453,7 @@ state_meta_poll(mctx);
   static uint32_t lastVuMs = 0;
   uint32_t nowVu = millis();
 #if defined(SSD1322)
+  oledUpdateIdlePowerState();
   const uint32_t vuUiIntervalMs = 85;
 #else
   const uint32_t vuUiIntervalMs = 100;
@@ -3369,7 +3461,7 @@ state_meta_poll(mctx);
   if (g_mode == MODE_PLAY && (nowVu - lastVuMs >= vuUiIntervalMs)) {
     lastVuMs = nowVu;
 #if defined(SSD1322)
-    oledUpdateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
+    if (!g_oledDisplayOff) oledUpdateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
 #else
     ui_updateVuMeterOnly(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
 #endif
