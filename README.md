@@ -1,6 +1,7 @@
 # 📻 myRadio Firmware
 
 ESP32 alapú internet rádió projekt TFT és OLED kijelző támogatással, webes kezelőfelülettel és bővíthető funkciókkal.
+ESP32-based internet radio project with support for TFT and OLED displays, a web-based interface, and expandable features.
 
 ---
 
