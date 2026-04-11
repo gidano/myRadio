@@ -24,7 +24,7 @@ ESP32 alapú internet rádió projekt TFT és OLED kijelző támogatással, webe
 
 * Állomáslista:
 
-  * max. 120 állomás
+  * max. 300 állomás
   * kereshető
   * weben szerkeszthető
 
@@ -172,7 +172,7 @@ A firmware:
 
 * Volume indicator
 
-* Station list (max 120, searchable, editable via web)
+* Station list (max 300, searchable, editable via web)
 
 * Starts with last station
 
