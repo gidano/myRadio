@@ -7,8 +7,7 @@ ESP32-based internet radio project with support for TFT and OLED displays, a web
 
 ## Képernyőkép/Screenshots
 
-<img src="https://github.com/gidano/myRadio/blob/main/images/myRadio_320x240px.jpg" alt="320x240" width="320">
-<img src="https://github.com/gidano/myRadio/blob/main/images/myRadio_480x320px.jpg" alt="480x320" width="480">
+<img src="https://github.com/gidano/myRadio/blob/main/images/myRadio_320x240px.jpg" alt="320x240" width="320"><img src="https://github.com/gidano/myRadio/blob/main/images/myRadio_480x320px.jpg" alt="480x320" width="480">
 
 ---
 
