@@ -473,7 +473,7 @@ static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   tft.setCursor(x, y);
   tft.println(lang::wifi_setup_step2);
   y += tft.fontHeight() + lineGap;
-  tft.setCursor(x + 22, y);
+  tft.setCursor(x + 12, y);
   tft.print("http://");
   tft.println(ip.toString());
   y += tft.fontHeight() + blockGap;
@@ -481,7 +481,7 @@ static void drawWiFiPortalHelp(const char* apSsid, const IPAddress& ip) {
   tft.setCursor(x, y);
   tft.println(lang::wifi_setup_step3);
   y += tft.fontHeight() + lineGap;
-  tft.setCursor(x + 22, y);
+  tft.setCursor(x + 12, y);
   tft.println(lang::wifi_setup_save_hint);
   y += tft.fontHeight() + blockGap;
 
@@ -800,7 +800,7 @@ static const uint16_t* codecIconPtrFromCodec(const String& codec) {
 static void drawCodecIconTopLeft() {
   if (g_mode != MODE_PLAY || ui_stationSelectorActive()) return;
   const int x = 0;
-  const int y = (tft.height() > 240) ? 7 : 0;
+  const int y = (tft.height() > 240) ? 6 : 0;
   clearRect(x, y, CODEC_ICON_W, CODEC_ICON_H);
 
 #if defined(SSD1322)
@@ -1092,7 +1092,7 @@ applyStationUiFont(tft);
 #if defined(SSD1322)
   // OLED: a VLW sorok tényleges magasságát vegyük figyelembe,
   // különben a sorok egymásba törölnek vagy a karakterek alja levágódik.
-  hStationLine = max(hStationText + 2, 14);
+  hStationLine = max(hStationText + 1, 14);
   hArtistLine  = max(hArtistText + 1, 10);
   hTitleLine   = max(hTitleText + 1, 10);
 #endif
@@ -1105,7 +1105,7 @@ applyStationUiFont(tft);
   yStationLabel = yHeader + hHeader + UI_GAP_AFTER_HEADER;
   yStationName  = yStationLabel + hLabel + UI_GAP_LABEL_TO_TEXT + UI_LABEL_TEXT_OFFSET;
 
-  yStreamLabel = (yStationName + hStationLine + UI_GAP_AFTER_STATION_LINE) - 3 - 3 - (is320 ? 2 : 0);
+  yStreamLabel = (yStationName + hStationLine + UI_GAP_AFTER_STATION_LINE) - 3 - 3 - (is320 ? -2 : 0);
 
   yArtist = yStreamLabel + hLabel + UI_GAP_STREAMLABEL_TO_TEXT + UI_LABEL_TEXT_OFFSET + UI_ARTIST_TITLE_Y_SHIFT;
   yTitle  = yArtist + hArtistLine + UI_GAP_ARTIST_TO_TITLE;
@@ -1147,7 +1147,7 @@ applyStationUiFont(tft);
   yHeader = 0;
   yStationLabel = 0;
   yStationName = 2;
-  yStreamLabel = (19) - 3 - (is320 ? 2 : 0);
+  yStreamLabel = (19) - 3 - (is320 ? -2 : 0);
   yArtist = 30;
   yTitle = 41;
   yVol = 53;
@@ -1354,7 +1354,7 @@ static void drawStreamLabelLine() {
   applyRegularUiFont(tft, UI_FONT_STREAM);
 #endif
   int th = tft.fontHeight();
-  int lineY = yStreamLabel;
+  int lineY = yStreamLabel ;
 #if defined(SSD1322)
   lineY -= 1;
 #endif
@@ -1373,7 +1373,7 @@ static void drawStreamLabelLine() {
   const int badgeClearH = (yTitle - yArtist) + hTitleLine + 3;
   if (rightBound > leftBound && badgeClearH > 0) clearRect(leftBound, badgeClearY, rightBound - leftBound, badgeClearH);
 #else
-  clearRect(0, lineY - 1, W, lineH + 2);
+  clearRect(0, lineY - 1, W, lineH + 1);
 #endif
 
   String line;
@@ -1426,7 +1426,7 @@ static void drawStreamLabelLine() {
   int bh = badgeH - 1;
 
   int bx = W - bw - 6;
-  int by = lineY;
+  int by = lineY + ((W <= 320 && H <= 240) ? 1 : 0);
 
   tft.fillRoundRect(bx, by, bw, bh, 6, TFT_ORANGE); // orange háttér
 
@@ -1531,7 +1531,7 @@ static int spriteTextYOffset(const LGFX_Sprite& spr) {
 #if defined(SSD1322)
   if (&spr == &sprStation) return 0;
 #endif
-  return (&spr == &sprStation) ? 1 : 0;
+  return (&spr == &sprStation) ? -3 : 0;
 }
 
 static int oledArtistRowY() {
@@ -1544,7 +1544,7 @@ static int oledArtistRowY() {
 
 static int oledTitleRowY() {
 #if defined(SSD1322)
-  return yTitle + 2;
+  return yTitle + 1;
 #else
   return yTitle;
 #endif
@@ -1746,7 +1746,7 @@ static void oledDrawPufIndicator(int percent) {
 
 static void oledVuComputeLayout(int rowTop, int wifiXLocal, int vuRightGap, int volRightX) {
   (void)vuRightGap;
-  const int pufLabelW = oledTinyTextWidth("PUF", 1) + 2;
+  const int pufLabelW = oledTinyTextWidth("PUF", 1) + 1;
   const int pufLabelGap = 2;
   const int pufBarW = 20;
   const int pufBlockW = pufLabelW + pufLabelGap + pufBarW;
@@ -1785,7 +1785,7 @@ static void oledClearVuArea() {
   }
   if (g_oledVuW <= 0 || g_oledVuH <= 0) return;
   const int totalW = (g_oledVuBarX + g_oledVuW) - g_oledVuX;
-  tft.fillRect(g_oledVuX, g_oledVuY - 1, totalW, g_oledVuH + 2, TFT_BLACK);
+  tft.fillRect(g_oledVuX, g_oledVuY - 1, totalW, g_oledVuH + 1, TFT_BLACK);
 }
 
 static void oledDrawVuLabels() {
@@ -1936,7 +1936,7 @@ static void oledUpdateVolumeOnly() {
   // Csak a bal oldali hangerő-blokkot töröljük és rajzoljuk újra.
   // Hagyunk tartalékot 2 jegy + esetleges későbbi spacing miatt,
   // így nem villog újra az IP / VU / Wi-Fi rész.
-  const int volumeRegionW = speakerW + 2 + 12;
+  const int volumeRegionW = speakerW + 1 + 12;
   tft.fillRect(0, rowTop, volumeRegionW, rowH, TFT_BLACK);
 
   drawGrayFromRgb565Bitmap(speakerX, speakerY, speakerW, speakerH, icon_speaker_12);
@@ -1997,9 +1997,9 @@ static void drawOledIpLine() {
 
   applyRegularUiFont(tft, 10);
   tft.setTextColor(OLED_MUTED_GREY, TFT_BLACK);
-  tft.drawString(ipText, ipX + ipLabelW + 2, rowTop + 1);
+  tft.drawString(ipText, ipX + ipLabelW + 1, rowTop + 1);
 
-  oledVuComputeLayout(rowTop, wifiXLocal, 3, ipX + ipLabelW + 2 + ipW);
+  oledVuComputeLayout(rowTop, wifiXLocal, 3, ipX + ipLabelW + 1 + ipW);
   oledDrawVuMeter(vu_getL(), vu_getR(), vu_getPeakL(), vu_getPeakR());
 
   int level = 0;
@@ -2377,7 +2377,7 @@ static void drawOledMenuCounterStatic() {
   if (g_stationCount > 0) {
     const String suffix = String(" / ") + String(g_stationCount);
     const int suffixW = tft.textWidth(suffix.c_str());
-    tft.fillRect(W - suffixW - 2, yHeader, suffixW + 2, textH, TFT_BLACK);
+    tft.fillRect(W - suffixW - 2, yHeader, suffixW + 1, textH, TFT_BLACK);
     tft.setTextDatum(top_right);
     tft.drawString(suffix, W - 1, yHeader);
     tft.setTextDatum(top_left);
@@ -2989,7 +2989,7 @@ void drawStartupScreen(uint8_t phase){
   } else {
     const int gap1 = 8;
     const int gap2 = 10;
-    const int gap3 = infoLine.length() ? 6 : 0;
+    const int gap3 = infoLine.length() ? 2 : 0;
     const int totalH = hTitle + gap1 + hBody + gap2 + hSsid + (infoLine.length() ? (gap3 + hInfo) : 0);
 
     yTitle = (tft.height() - totalH) / 2;
